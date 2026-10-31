@@ -593,7 +593,7 @@ views:
   - type: grid
     cards:
     - type: heading
-      heading: Betriebsstunden
+      heading: Betriebsstunden gesamt
       icon: mdi:timer-outline
       heading_style: title
     - type: entities
@@ -603,10 +603,12 @@ views:
       entities:
       - type: simple-entity
         entity: input_number.wp_betriebsstunden_aussengerat
-        name: Außengerät gesamt
+        name: Außengerät
+        icon: mdi:heat-pump
       - type: simple-entity
         entity: input_number.wp_betriebsstunden_heizungspumpe
-        name: Heizungspumpe gesamt
+        name: Heizungspumpe
+        icon: mdi:pump
     - type: markdown
       grid_options:
         columns: 12
@@ -625,18 +627,23 @@ views:
       - type: simple-entity
         entity: input_number.wp_laufzeit_aussengerat_jahr
         name: Außengerät
+        icon: mdi:heat-pump
       - type: simple-entity
         entity: input_number.wp_laufzeit_heizungspumpe_jahr
         name: Heizungspumpe
+        icon: mdi:pump
       - type: simple-entity
         entity: input_number.wp_laufzeit_heizen_jahr
         name: Heizen
+        icon: mdi:radiator
       - type: simple-entity
         entity: input_number.wp_laufzeit_warmwasser_jahr
         name: Warmwasser
+        icon: mdi:water-boiler
       - type: simple-entity
         entity: input_number.wp_laufzeit_kuhlen_jahr
         name: Kühlen
+        icon: mdi:snowflake
     - type: markdown
       grid_options:
         columns: 12
@@ -658,18 +665,23 @@ views:
       - type: simple-entity
         entity: input_number.wp_laufzeit_aussengerat_vorjahr
         name: Außengerät
+        icon: mdi:heat-pump
       - type: simple-entity
         entity: input_number.wp_laufzeit_heizungspumpe_vorjahr
         name: Heizungspumpe
+        icon: mdi:pump
       - type: simple-entity
         entity: input_number.wp_laufzeit_heizen_vorjahr
         name: Heizen
+        icon: mdi:radiator
       - type: simple-entity
         entity: input_number.wp_laufzeit_warmwasser_vorjahr
         name: Warmwasser
+        icon: mdi:water-boiler
       - type: simple-entity
         entity: input_number.wp_laufzeit_kuhlen_vorjahr
         name: Kühlen
+        icon: mdi:snowflake
     - type: statistics-graph
       title: Laufzeit pro Jahr
       grid_options:

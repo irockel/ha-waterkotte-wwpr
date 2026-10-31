@@ -72,7 +72,7 @@ Tested with WWPR firmware 01.05.04. Other firmware versions may use a different 
 5. **Dashboard:** Settings → Dashboards → Add dashboard (from scratch), URL `waerme-pumpe`, then open it → ✏️ →
    ⋮ → Raw configuration editor, and paste [dashboard/waermepumpe.yaml](dashboard/waermepumpe.yaml).
 6. **Operating hours (optional):** the counters start at 0. To continue from the display's value, tap
-   "Außengerät gesamt" / "Heizungspumpe gesamt" in the Verlauf tab and enter the current hours.
+   "Außengerät" / "Heizungspumpe" under "Betriebsstunden gesamt" in the Verlauf tab and enter the current hours.
 
 Optional, to keep the database small:
 
