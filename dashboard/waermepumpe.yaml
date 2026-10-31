@@ -1,0 +1,672 @@
+# Dashboard for packages/waterkotte_wwpr.yaml: new dashboard with URL "waerme-pumpe",
+# then ⋮ → Edit dashboard → ⋮ → Raw configuration editor and paste this file.
+title: Wärmepumpe
+views:
+- type: sections
+  title: Übersicht
+  path: uebersicht
+  icon: mdi:heat-pump
+  max_columns: 3
+  badges:
+  - type: entity
+    entity: sensor.warmepumpe_betriebsmodus
+    show_name: false
+    show_state: true
+    show_icon: true
+  - type: entity
+    entity: sensor.warmepumpe_betriebszustand
+    show_name: false
+    show_icon: true
+    show_state: true
+    color: primary
+    visibility:
+    - condition: state
+      entity: sensor.warmepumpe_betriebszustand
+      state_not:
+      - EVU-Sperre
+      - Störung
+      - Unterbrechung
+    - condition: state
+      entity: binary_sensor.warmepumpe_zyklische_messung
+      state_not: 'on'
+    - condition: state
+      entity: binary_sensor.warmepumpe_abtauung_erkannt
+      state_not: 'on'
+  - type: entity
+    entity: sensor.warmepumpe_aussentemperatur
+    name: Außen
+    show_name: true
+    show_state: true
+    show_icon: true
+  - type: entity
+    entity: binary_sensor.warmepumpe_abtauung_erkannt
+    name: Abtauung
+    icon: mdi:snowflake-melt
+    show_name: true
+    show_state: false
+    color: light-blue
+    visibility:
+    - condition: state
+      entity: binary_sensor.warmepumpe_abtauung_erkannt
+      state: 'on'
+  - type: entity
+    entity: binary_sensor.warmepumpe_zyklische_messung
+    name: Zyklische Messung
+    icon: mdi:thermometer-water
+    show_name: true
+    show_state: false
+    color: cyan
+    visibility:
+    - condition: state
+      entity: binary_sensor.warmepumpe_zyklische_messung
+      state: 'on'
+  - type: entity
+    entity: binary_sensor.warmepumpe_evu_sperre
+    name: EVU-Sperre aktiv
+    show_name: true
+    show_state: false
+    color: amber
+    visibility:
+    - condition: state
+      entity: binary_sensor.warmepumpe_evu_sperre
+      state: 'on'
+  - type: entity
+    entity: binary_sensor.warmepumpe_unterbrechung
+    name: Unterbrechung
+    show_name: true
+    show_state: false
+    color: orange
+    visibility:
+    - condition: state
+      entity: binary_sensor.warmepumpe_unterbrechung
+      state: 'on'
+  - type: entity
+    entity: binary_sensor.warmepumpe_storung
+    name: Störung
+    show_name: true
+    show_state: false
+    color: red
+    visibility:
+    - condition: state
+      entity: binary_sensor.warmepumpe_storung
+      state: 'on'
+  sections:
+  - type: grid
+    cards:
+    - type: gauge
+      entity: sensor.warmepumpe_warmwasser
+      name: Warmwasser
+      min: 35
+      max: 55
+      needle: true
+      segments:
+      - from: 35
+        color: '#3b82f6'
+      - from: 43
+        color: '#22c55e'
+      - from: 50
+        color: '#f59e0b'
+      grid_options:
+        columns: 6
+    - type: gauge
+      entity: sensor.warmepumpe_heizkreis_abweichung
+      name: Heizkreis Ist − Soll
+      min: -3
+      max: 3
+      needle: true
+      segments:
+      - from: -3
+        color: '#3b82f6'
+      - from: -1
+        color: '#22c55e'
+      - from: 1.5
+        color: '#f59e0b'
+      grid_options:
+        columns: 6
+    - type: tile
+      entity: sensor.warmepumpe_warmwasser
+      name: Warmwasser Ist
+      grid_options:
+        columns: 6
+      color: blue
+    - type: tile
+      entity: sensor.warmepumpe_heizkreis_ist
+      name: Heizkreis Ist
+      grid_options:
+        columns: 6
+      color: red
+    - type: tile
+      entity: sensor.warmepumpe_warmwasser_soll
+      name: Warmwasser Soll
+      grid_options:
+        columns: 6
+      color: blue
+    - type: tile
+      entity: sensor.warmepumpe_heizkreis_soll
+      name: Heizkreis Soll
+      grid_options:
+        columns: 6
+      color: red
+    - type: tile
+      entity: sensor.warmepumpe_aussentemperatur_24h
+      name: Außen Ø 24 h
+      grid_options:
+        columns: 12
+      color: light-blue
+      icon: mdi:sun-thermometer
+  - type: grid
+    cards:
+    - type: heading
+      heading: Status
+      icon: mdi:heat-pump
+      heading_style: title
+    - type: tile
+      entity: sensor.warmepumpe_betriebszustand
+      name: Betriebszustand
+      grid_options:
+        columns: 12
+      color: primary
+      state_content:
+      - state
+      - last_changed
+    - type: tile
+      entity: binary_sensor.warmepumpe_verdichter
+      name: Verdichter
+      grid_options:
+        columns: 6
+      color: deep-orange
+      state_content:
+      - state
+      - last_changed
+    - type: tile
+      entity: sensor.warmepumpe_verdichterleistung
+      name: Leistung
+      grid_options:
+        columns: 6
+      color: deep-orange
+    - type: tile
+      entity: binary_sensor.warmepumpe_heizungspumpe
+      name: Heizungspumpe
+      grid_options:
+        columns: 6
+      color: cyan
+      state_content:
+      - state
+      - last_changed
+    - type: tile
+      entity: sensor.warmepumpe_pumpendrehzahl
+      name: Drehzahl
+      grid_options:
+        columns: 6
+      color: cyan
+    - type: tile
+      entity: binary_sensor.warmepumpe_warmwasserbetrieb
+      name: Warmwasser
+      grid_options:
+        columns: 6
+      color: blue
+      state_content:
+      - state
+      - last_changed
+    - type: tile
+      entity: binary_sensor.warmepumpe_evu_sperre
+      name: EVU-Sperre
+      grid_options:
+        columns: 6
+      color: amber
+      state_content:
+      - state
+      - last_changed
+    - type: tile
+      entity: sensor.warmepumpe_storungen
+      name: Störungen
+      grid_options:
+        columns: 6
+      color: grey
+      visibility:
+      - condition: state
+        entity: sensor.warmepumpe_storungen
+        state: Keine
+    - type: tile
+      entity: sensor.warmepumpe_storungen
+      name: Störungen
+      grid_options:
+        columns: 6
+      color: red
+      visibility:
+      - condition: state
+        entity: sensor.warmepumpe_storungen
+        state_not: Keine
+    - type: tile
+      entity: sensor.warmepumpe_information
+      name: Information
+      grid_options:
+        columns: 6
+      color: grey
+      visibility:
+      - condition: state
+        entity: sensor.warmepumpe_information
+        state: Keine
+    - type: tile
+      entity: sensor.warmepumpe_information
+      name: Information
+      grid_options:
+        columns: 6
+      color: blue
+      visibility:
+      - condition: state
+        entity: sensor.warmepumpe_information
+        state_not: Keine
+- type: sections
+  title: Steuerung
+  path: steuerung
+  icon: mdi:tune-variant
+  max_columns: 3
+  sections:
+  - type: grid
+    cards:
+    - type: heading
+      heading: Warmwasser
+      icon: mdi:water-boiler
+      heading_style: title
+    - type: tile
+      entity: input_number.wp_warmwasser_soll_vorgabe
+      name: Sollwert
+      grid_options:
+        columns: 12
+      color: blue
+      icon: mdi:water-boiler
+      features:
+      - type: numeric-input
+        style: buttons
+      features_position: inline
+  - type: grid
+    cards:
+    - type: heading
+      heading: Heizung
+      icon: mdi:radiator
+      heading_style: title
+    - type: tile
+      entity: input_number.wp_heizgrenze_vorgabe
+      name: Heizgrenze außen
+      grid_options:
+        columns: 12
+      color: red
+      icon: mdi:sun-thermometer
+      features:
+      - type: numeric-input
+        style: buttons
+      features_position: inline
+    - type: tile
+      entity: input_number.wp_heizkreis_sollwert_norm_vorgabe
+      name: Heizkreis Sollwert Norm
+      grid_options:
+        columns: 12
+      color: red
+      icon: mdi:thermometer-high
+      features:
+      - type: numeric-input
+        style: buttons
+      features_position: inline
+    - type: tile
+      entity: input_number.wp_heizgrenze_soll_vorgabe
+      name: Heizgrenze Soll
+      grid_options:
+        columns: 12
+      color: red
+      icon: mdi:thermometer-low
+      features:
+      - type: numeric-input
+        style: buttons
+      features_position: inline
+    - type: tile
+      entity: input_number.wp_heizen_schaltdifferenz_vorgabe
+      name: Schaltdifferenz
+      grid_options:
+        columns: 12
+      color: red
+      icon: mdi:arrow-expand-vertical
+      features:
+      - type: numeric-input
+        style: buttons
+      features_position: inline
+    - type: markdown
+      content: |
+        {#- Heizkennlinie as on the heat pump display, for a markdown card (rendered as SVG image).
+            Points: (Norm-Außentemperatur A91, Heizkreis Sollwert Norm A92) and (Heizgrenze A93, Heizgrenze Soll A94);
+            straight line between them, extended to the left (capped at max. Rücklauf A95), flat right of the Heizgrenze.
+            Uses the values read back from the heat pump, so the graph follows once a change has been applied. -#}
+        {%- set p = 'sensor.warmepumpe_kennlinie_' -%}
+        {%- set v = [states(p ~ 'norm_aussentemperatur'), states(p ~ 'heizkreis_norm'), states(p ~ 'heizgrenze'),
+                     states(p ~ 'heizgrenze_soll'), states(p ~ 'max_rucklauf')] -%}
+        {%- if v | select('is_number') | list | length < 5 or v[0] | float >= v[2] | float -%}
+        Heizkennlinie nicht verfügbar
+        {%- else -%}
+        {%- set xn, yn, xg, yg, ymax = v[0] | float, v[1] | float, v[2] | float, v[3] | float, v[4] | float -%}
+        {%- set m = (yg - yn) / (xg - xn) -%}
+        {%- set xa, xb = xn - 5, xg + 7 -%}
+        {%- set ya = [ymax, yn + (xa - xn) * m] | min -%}
+        {%- set y0 = yn - xn * m -%}
+        {%- set lo, hi = [yg, ya] | min - 4, [yg, ya] | max + 3 -%}
+        {%- set L, R, T, B = 36, 300, 34, 140 -%}
+        {%- macro px(x) -%}{{ '%.1f' | format(L + (x - xa) / (xb - xa) * (R - L)) }}{%- endmacro -%}
+        {%- macro py(y) -%}{{ '%.1f' | format(B - (y - lo) / (hi - lo) * (B - T)) }}{%- endmacro -%}
+        {%- macro t(x, y, text, anchor='middle') -%}
+        <text x="{{ x }}" y="{{ y }}" text-anchor="{{ anchor }}">{{ text }}</text>
+        {%- endmacro -%}
+        {%- macro drop(x, y) -%}
+        <line x1="{{ px(x) }}" y1="{{ B }}" x2="{{ px(x) }}" y2="{{ py(y) }}" stroke-dasharray="3 3"/>
+        {%- endmacro -%}
+        {%- set f = '%.1f' -%}
+        {%- set svg -%}
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 172" font-family="sans-serif" font-size="12" fill="#8a8a8a">
+        <g stroke="#8a8a8a" stroke-width="1" fill="none">
+        <line x1="{{ L }}" y1="{{ B }}" x2="{{ R + 12 }}" y2="{{ B }}"/><path d="M{{ R + 12 }} {{ B }} l-6 -3 v6 z" fill="#8a8a8a"/>
+        <line x1="{{ L }}" y1="{{ B }}" x2="{{ L }}" y2="{{ T - 14 }}"/><path d="M{{ L }} {{ T - 14 }} l-3 6 h6 z" fill="#8a8a8a"/>
+        {{ drop(xn, yn) }}{{ drop(xg, yg) }}{% if xn < 0 < xg %}{{ drop(0, y0) }}{% endif %}
+        </g>
+        <polyline fill="none" stroke="#e53935" stroke-width="2.5" stroke-linejoin="round"
+         points="{{ px(xa) }},{{ py(ya) }} {{ px(xn) }},{{ py(yn) }} {{ px(xg) }},{{ py(yg) }} {{ px(xb) }},{{ py(yg) }}"/>
+        {{ t(6, 12, 'Heizkreis °C', 'start') }}{{ t(L + 8, 30, 'max ' ~ f | format(ymax), 'start') }}
+        {{ t(px(xn), py(yn) | float - 8, f | format(yn)) }}{{ t(px(xg), py(yg) | float - 8, f | format(yg)) }}
+        {%- if xn < 0 < xg %}{{ t(px(0), py(y0) | float - 8, f | format(y0)) }}{{ t(px(0), B + 16, '0') }}{% endif %}
+        {{ t(px(xn), B + 16, f | format(xn)) }}{{ t(px(xg), B + 16, f | format(xg)) }}
+        {{ t(R + 12, B + 30, 'Außen °C', 'end') }}
+        </svg>
+        {%- endset -%}
+        <img src="data:image/svg+xml;base64,{{ svg | base64_encode }}" alt="Heizkennlinie" width="100%">
+        {%- endif -%}
+      grid_options:
+        columns: 12
+  - type: grid
+    cards:
+    - type: heading
+      heading: Kühlung
+      icon: mdi:snowflake
+      heading_style: title
+    - type: tile
+      entity: input_number.wp_kuhlkreis_soll_vorgabe
+      name: Kühlkreis Soll
+      grid_options:
+        columns: 12
+      color: light-blue
+      icon: mdi:snowflake-thermometer
+      features:
+      - type: numeric-input
+        style: buttons
+      features_position: inline
+    - type: tile
+      entity: input_number.wp_kuhlgrenze_vorgabe
+      name: Kühlgrenze außen
+      grid_options:
+        columns: 12
+      color: light-blue
+      icon: mdi:snowflake-thermometer
+      features:
+      - type: numeric-input
+        style: buttons
+      features_position: inline
+    - type: tile
+      entity: input_number.wp_kuhlen_schaltdifferenz_vorgabe
+      name: Schaltdifferenz
+      grid_options:
+        columns: 12
+      color: light-blue
+      icon: mdi:arrow-expand-vertical
+      features:
+      - type: numeric-input
+        style: buttons
+      features_position: inline
+  - type: grid
+    cards:
+    - type: heading
+      heading: Schreibstatus
+      icon: mdi:swap-vertical
+      heading_style: title
+    - type: tile
+      entity: input_text.wp_schreibstatus
+      name: Letzte Änderung
+      grid_options:
+        columns: 12
+      color: grey
+      state_content:
+      - state
+      - last_changed
+    - type: tile
+      entity: counter.wp_schreibversuche
+      name: Schreibversuche gesamt
+      grid_options:
+        columns: 6
+      color: grey
+    - type: tile
+      entity: script.wp_register_schreiben
+      name: Schreibvorgang
+      grid_options:
+        columns: 6
+      color: amber
+      state_content:
+      - state
+- type: sections
+  title: Urlaub
+  path: urlaub
+  icon: mdi:beach
+  max_columns: 3
+  sections:
+  - type: grid
+    cards:
+    - type: heading
+      heading: Urlaub
+      icon: mdi:beach
+      heading_style: title
+    - type: markdown
+      content: |-
+        {%- set b = states('input_datetime.wp_urlaub_beginn') | as_datetime -%}
+        {%- set e = states('input_datetime.wp_urlaub_ende') | as_datetime -%}
+        {%- set a = states('input_number.wp_urlaub_temperaturabsenkung') -%}
+        {%- macro d(x) %}{{ x.strftime('%d.%m. %H:%M') if x else '–' }}{% endmacro -%}
+        {%- if is_state('input_boolean.wp_urlaub_aktiv', 'on') -%}
+        ## 🏖️ Urlaub aktiv
+        bis **{{ d(e) }}** · Heizkreis {{ a }} K · Kühlbetrieb {{ 'aus' if is_state('sensor.warmepumpe_bms_kuhlbetrieb', '0') else 'an' }} · Warmwasser {{ 'aus' if is_state('sensor.warmepumpe_bms_warmwasser', '0') else 'an' }}
+        {%- elif is_state('input_boolean.wp_urlaub_geplant', 'on') -%}
+        ## 🗓️ Urlaub geplant
+        {{ d(b) }} – {{ d(e) }} · Heizkreis {{ a }} K · Kühlbetrieb {{ 'blockieren' if is_state('input_boolean.wp_urlaub_kuhlbetrieb_blockieren', 'on') else 'erlauben' }} · Warmwasser {{ 'blockieren' if is_state('input_boolean.wp_urlaub_warmwasser_blockieren', 'on') else 'erlauben' }}
+        {%- else -%}
+        Kein Urlaub geplant. Zeitraum und Werte einstellen, dann „Urlaub planen" einschalten.
+        {%- endif %}
+
+        <small>Nicht zusammen mit der Urlaubsfunktion am Display verwenden, sonst wirkt die Absenkung doppelt.</small>
+      grid_options:
+        columns: 12
+    - type: entities
+      grid_options:
+        columns: 12
+      show_header_toggle: false
+      entities:
+      - entity: input_datetime.wp_urlaub_beginn
+        name: Beginn
+      - entity: input_datetime.wp_urlaub_ende
+        name: Ende
+    - type: tile
+      entity: input_number.wp_urlaub_temperaturabsenkung
+      name: Temperaturabsenkung im Heizkreis
+      grid_options:
+        columns: 12
+      color: light-blue
+      icon: mdi:thermometer-minus
+      features:
+      - type: numeric-input
+        style: buttons
+      features_position: inline
+    - type: tile
+      entity: input_boolean.wp_urlaub_kuhlbetrieb_blockieren
+      name: Kühlbetrieb blockieren
+      grid_options:
+        columns: 12
+      color: light-blue
+      features:
+      - type: toggle
+      features_position: inline
+    - type: tile
+      entity: input_boolean.wp_urlaub_warmwasser_blockieren
+      name: Warmwasserbereitung blockieren
+      grid_options:
+        columns: 12
+      color: blue
+      features:
+      - type: toggle
+      features_position: inline
+    - type: tile
+      entity: input_boolean.wp_urlaub_geplant
+      name: Urlaub planen
+      grid_options:
+        columns: 12
+      color: green
+      features:
+      - type: toggle
+      features_position: inline
+- type: sections
+  title: Verlauf
+  path: verlauf
+  icon: mdi:chart-line
+  max_columns: 2
+  sections:
+  - type: grid
+    cards:
+    - type: history-graph
+      title: Betrieb
+      hours_to_show: 24
+      grid_options:
+        columns: 12
+      entities:
+      - entity: binary_sensor.warmepumpe_verdichter
+        name: Verdichter
+      - entity: binary_sensor.warmepumpe_warmwasserbetrieb
+        name: Warmwasser
+      - entity: binary_sensor.warmepumpe_heizungspumpe
+        name: Pumpe
+      - entity: binary_sensor.warmepumpe_zyklische_messung
+        name: Messung
+      - entity: binary_sensor.warmepumpe_abtauung_erkannt
+        name: Abtauung
+      - entity: binary_sensor.warmepumpe_evu_sperre
+        name: EVU-Sperre
+      - entity: binary_sensor.warmepumpe_storung
+        name: Störung
+    - type: history-graph
+      title: Heizkreis & Außen
+      hours_to_show: 24
+      grid_options:
+        columns: 12
+      entities:
+      - entity: sensor.warmepumpe_heizkreis_ist
+        name: Heizkreis Ist
+      - entity: sensor.warmepumpe_heizkreis_soll
+        name: Heizkreis Soll
+      - entity: sensor.warmepumpe_aussentemperatur
+        name: Außen
+      - entity: sensor.warmepumpe_aussentemperatur_24h
+        name: Außen Ø 24 h
+    - type: history-graph
+      title: Temperaturen (bei Durchfluss)
+      hours_to_show: 24
+      grid_options:
+        columns: 12
+      entities:
+      - entity: sensor.warmepumpe_aussentemperatur
+        name: Außen
+      - entity: sensor.warmepumpe_warmwasser
+        name: Warmwasser
+      - entity: sensor.warmepumpe_vorlauf_durchfluss
+        name: Vorlauf
+      - entity: sensor.warmepumpe_rucklauf_durchfluss
+        name: Rücklauf
+    - type: history-graph
+      title: Leistung & Spreizung
+      hours_to_show: 24
+      grid_options:
+        columns: 12
+      entities:
+      - entity: sensor.warmepumpe_verdichterleistung
+        name: Verdichter
+      - entity: sensor.warmepumpe_spreizung
+        name: Spreizung
+  - type: grid
+    cards:
+    - type: heading
+      heading: Betriebsstunden
+      icon: mdi:timer-outline
+      heading_style: title
+    - type: entities
+      grid_options:
+        columns: 12
+      show_header_toggle: false
+      entities:
+      - type: simple-entity
+        entity: input_number.wp_betriebsstunden_aussengerat
+        name: Außengerät gesamt
+      - type: simple-entity
+        entity: input_number.wp_betriebsstunden_heizungspumpe
+        name: Heizungspumpe gesamt
+    - type: markdown
+      grid_options:
+        columns: 12
+      content: '<small>Von Home Assistant gezählt (die Zähler der WWPR bleiben bei 16384 h stehen). Startwert: Eintrag antippen
+        und den Stand vom Display eintragen.</small>'
+    - type: markdown
+      grid_options:
+        columns: 12
+      text_only: true
+      content: '#### Laufzeit {{ now().year }}'
+    - type: entities
+      grid_options:
+        columns: 12
+      show_header_toggle: false
+      entities:
+      - type: simple-entity
+        entity: input_number.wp_laufzeit_aussengerat_jahr
+        name: Außengerät
+      - type: simple-entity
+        entity: input_number.wp_laufzeit_heizungspumpe_jahr
+        name: Heizungspumpe
+      - type: simple-entity
+        entity: input_number.wp_laufzeit_heizen_jahr
+        name: Heizen
+      - type: simple-entity
+        entity: input_number.wp_laufzeit_warmwasser_jahr
+        name: Warmwasser
+      - type: simple-entity
+        entity: input_number.wp_laufzeit_kuhlen_jahr
+        name: Kühlen
+    - type: markdown
+      grid_options:
+        columns: 12
+      text_only: true
+      content: '#### Laufzeit {{ now().year - 1 }}'
+      visibility:
+      - condition: numeric_state
+        entity: input_number.wp_laufzeit_aussengerat_vorjahr
+        above: 0
+    - type: entities
+      grid_options:
+        columns: 12
+      show_header_toggle: false
+      visibility:
+      - condition: numeric_state
+        entity: input_number.wp_laufzeit_aussengerat_vorjahr
+        above: 0
+      entities:
+      - type: simple-entity
+        entity: input_number.wp_laufzeit_aussengerat_vorjahr
+        name: Außengerät
+      - type: simple-entity
+        entity: input_number.wp_laufzeit_heizungspumpe_vorjahr
+        name: Heizungspumpe
+      - type: simple-entity
+        entity: input_number.wp_laufzeit_heizen_vorjahr
+        name: Heizen
+      - type: simple-entity
+        entity: input_number.wp_laufzeit_warmwasser_vorjahr
+        name: Warmwasser
+      - type: simple-entity
+        entity: input_number.wp_laufzeit_kuhlen_vorjahr
+        name: Kühlen

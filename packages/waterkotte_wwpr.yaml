@@ -1,0 +1,1724 @@
+# Waterkotte heat pump with WWPR controller (Carel pCO) via a Carel pCOWeb card, Modbus TCP.
+# Home Assistant package - see README.md. Generated from the author's live setup.
+#
+# Before use:
+#   - modbus -> host: address of your pCOWeb card (with pcoweb-mbproxy on port 502)
+#   - script.wp_benachrichtigen: where messages go (default: notifications in Home Assistant)
+#
+# Writes to the heat pump only go through script.wp_register_schreiben (write, wait for the read-back,
+# at most one more attempt). The zero checks (nan_value 0x0000, "block valid" conditions in the templates)
+# keep the values stable when the card runs the stock pcod, whose dropouts read as all-zero blocks.
+modbus:
+  - name: waterkotte
+    type: tcp
+    host: 192.0.2.10        # <- address of your pCOWeb card
+    port: 502
+    timeout: 5
+    sensors:
+      - name: "WP Außentemperatur"
+        unique_id: wp_temp_aussen
+        address: 1
+        input_type: holding
+        data_type: int16
+        scale: 0.1
+        precision: 1
+        unit_of_measurement: "°C"
+        device_class: temperature
+        state_class: measurement
+        scan_interval: 10
+        nan_value: "0x0000"
+      - name: "WP Außentemperatur 24h"
+        unique_id: wp_temp_aussen_24h
+        address: 3
+        input_type: holding
+        data_type: int16
+        scale: 0.1
+        precision: 1
+        unit_of_measurement: "°C"
+        device_class: temperature
+        state_class: measurement
+        scan_interval: 10
+        nan_value: "0x0000"
+      - name: "WP Vorlauf"
+        unique_id: wp_temp_vl
+        address: 12
+        input_type: holding
+        data_type: int16
+        scale: 0.1
+        precision: 1
+        unit_of_measurement: "°C"
+        device_class: temperature
+        state_class: measurement
+        scan_interval: 10
+        nan_value: "0x0000"
+      - name: "WP Rücklauf"
+        unique_id: wp_temp_rl
+        address: 11
+        input_type: holding
+        data_type: int16
+        scale: 0.1
+        precision: 1
+        unit_of_measurement: "°C"
+        device_class: temperature
+        state_class: measurement
+        scan_interval: 10
+        nan_value: "0x0000"
+      - name: "WP Warmwasser"
+        unique_id: wp_temp_ww
+        address: 19
+        input_type: holding
+        data_type: int16
+        scale: 0.1
+        precision: 1
+        unit_of_measurement: "°C"
+        device_class: temperature
+        state_class: measurement
+        scan_interval: 10
+        nan_value: "0x0000"
+      - name: "WP Warmwasser Soll"
+        unique_id: wp_temp_ww_soll
+        address: 37
+        input_type: holding
+        data_type: int16
+        scale: 0.1
+        precision: 1
+        unit_of_measurement: "°C"
+        device_class: temperature
+        state_class: measurement
+        scan_interval: 10
+        nan_value: "0x0000"
+      - name: "WP Heizkreis Ist"
+        unique_id: wp_temp_hk_ist
+        address: 30
+        input_type: holding
+        data_type: int16
+        scale: 0.1
+        precision: 1
+        unit_of_measurement: "°C"
+        device_class: temperature
+        state_class: measurement
+        scan_interval: 10
+        nan_value: "0x0000"
+      - name: "WP Heizkreis Soll"
+        unique_id: wp_temp_hk_soll
+        address: 31
+        input_type: holding
+        data_type: int16
+        scale: 0.1
+        precision: 1
+        unit_of_measurement: "°C"
+        device_class: temperature
+        state_class: measurement
+        scan_interval: 10
+        nan_value: "0x0000"
+      - name: "WP Statusblock"
+        unique_id: wp_raw_statusblock
+        address: 158
+        count: 24
+        input_type: holding
+        data_type: custom
+        structure: ">24H"
+        scan_interval: 10
+      - name: "WP Leistungsblock"
+        unique_id: wp_raw_leistungsblock
+        address: 51
+        count: 8
+        input_type: holding
+        data_type: custom
+        structure: ">8H"
+        scan_interval: 10
+      - name: "WP Warmwasserblock"
+        unique_id: wp_raw_warmwasserblock
+        address: 37
+        count: 2
+        input_type: holding
+        data_type: custom
+        structure: ">2h"
+        scan_interval: 10
+      - name: "WP Kennlinienblock"
+        unique_id: wp_raw_kennlinienblock
+        address: 91
+        count: 6
+        input_type: holding
+        data_type: custom
+        structure: ">6h"
+        scan_interval: 10
+      # A107 Schaltdifferenz Kühlen, A108 Kühlgrenze (24 h outside), A109 Kühlkreis Soll (return)
+      - name: "WP Kühlblock"
+        unique_id: wp_raw_kuehlblock
+        address: 107
+        count: 3
+        input_type: holding
+        data_type: custom
+        structure: ">3h"
+        scan_interval: 30
+      # A61 Schaltdifferenz Heizen (raw, x10)
+      - name: "WP Heizen Schaltdifferenz"
+        unique_id: wp_raw_heizen_schaltdifferenz
+        address: 61
+        input_type: holding
+        data_type: int16
+        scan_interval: 30
+template:
+  - trigger:
+      - trigger: state
+        entity_id:
+          - sensor.wp_aussentemperatur
+          - sensor.wp_aussentemperatur_24h
+          - sensor.wp_vorlauf
+          - sensor.wp_rucklauf
+          - sensor.wp_warmwasser
+          - sensor.wp_warmwasser_soll
+          - sensor.wp_heizkreis_ist
+          - sensor.wp_heizkreis_soll
+      - trigger: time_pattern
+        minutes: "/1"
+    sensor:
+      - name: "Wärmepumpe Außentemperatur"
+        unique_id: waermepumpe_aussentemperatur
+        unit_of_measurement: "°C"
+        device_class: temperature
+        state_class: measurement
+        availability: >
+          {% set e = states.sensor.wp_aussentemperatur %}
+          {{ e is not none and (e.state != 'unavailable'
+             or (now() - e.last_changed).total_seconds() < 600) }}
+        state: >
+          {% set v = states('sensor.wp_aussentemperatur') %}
+          {{ v if is_number(v) else (this.state if is_number(this.state) else none) }}
+      - name: "Wärmepumpe Außentemperatur 24h"
+        unique_id: waermepumpe_aussentemperatur_24h
+        unit_of_measurement: "°C"
+        device_class: temperature
+        state_class: measurement
+        availability: >
+          {% set e = states.sensor.wp_aussentemperatur %}
+          {{ e is not none and (e.state != 'unavailable'
+             or (now() - e.last_changed).total_seconds() < 600) }}
+        state: >
+          {% set v = states('sensor.wp_aussentemperatur_24h') %}
+          {{ v if is_number(v) else (this.state if is_number(this.state) else none) }}
+      - name: "Wärmepumpe Vorlauf"
+        unique_id: waermepumpe_vorlauf
+        unit_of_measurement: "°C"
+        device_class: temperature
+        state_class: measurement
+        availability: >
+          {% set e = states.sensor.wp_aussentemperatur %}
+          {{ e is not none and (e.state != 'unavailable'
+             or (now() - e.last_changed).total_seconds() < 600) }}
+        state: >
+          {% set v = states('sensor.wp_vorlauf') %}
+          {{ v if is_number(v) else (this.state if is_number(this.state) else none) }}
+      - name: "Wärmepumpe Rücklauf"
+        unique_id: waermepumpe_ruecklauf
+        unit_of_measurement: "°C"
+        device_class: temperature
+        state_class: measurement
+        availability: >
+          {% set e = states.sensor.wp_aussentemperatur %}
+          {{ e is not none and (e.state != 'unavailable'
+             or (now() - e.last_changed).total_seconds() < 600) }}
+        state: >
+          {% set v = states('sensor.wp_rucklauf') %}
+          {{ v if is_number(v) else (this.state if is_number(this.state) else none) }}
+      - name: "Wärmepumpe Warmwasser"
+        unique_id: waermepumpe_warmwasser
+        unit_of_measurement: "°C"
+        device_class: temperature
+        state_class: measurement
+        availability: >
+          {% set e = states.sensor.wp_aussentemperatur %}
+          {{ e is not none and (e.state != 'unavailable'
+             or (now() - e.last_changed).total_seconds() < 600) }}
+        state: >
+          {% set v = states('sensor.wp_warmwasser') %}
+          {{ v if is_number(v) else (this.state if is_number(this.state) else none) }}
+      - name: "Wärmepumpe Warmwasser Soll"
+        unique_id: waermepumpe_warmwasser_soll
+        unit_of_measurement: "°C"
+        device_class: temperature
+        state_class: measurement
+        availability: >
+          {% set e = states.sensor.wp_aussentemperatur %}
+          {{ e is not none and (e.state != 'unavailable'
+             or (now() - e.last_changed).total_seconds() < 600) }}
+        state: >
+          {% set v = states('sensor.wp_warmwasser_soll') %}
+          {{ v if is_number(v) else (this.state if is_number(this.state) else none) }}
+      - name: "Wärmepumpe Heizkreis Ist"
+        unique_id: waermepumpe_heizkreis_ist
+        unit_of_measurement: "°C"
+        device_class: temperature
+        state_class: measurement
+        availability: >
+          {% set e = states.sensor.wp_aussentemperatur %}
+          {{ e is not none and (e.state != 'unavailable'
+             or (now() - e.last_changed).total_seconds() < 600) }}
+        state: >
+          {% set v = states('sensor.wp_heizkreis_ist') %}
+          {{ v if is_number(v) else (this.state if is_number(this.state) else none) }}
+      - name: "Wärmepumpe Heizkreis Soll"
+        unique_id: waermepumpe_heizkreis_soll
+        unit_of_measurement: "°C"
+        device_class: temperature
+        state_class: measurement
+        availability: >
+          {% set e = states.sensor.wp_aussentemperatur %}
+          {{ e is not none and (e.state != 'unavailable'
+             or (now() - e.last_changed).total_seconds() < 600) }}
+        state: >
+          {% set v = states('sensor.wp_heizkreis_soll') %}
+          {{ v if is_number(v) else (this.state if is_number(this.state) else none) }}
+  # "ok" = at least 8 of I30..I42 (HR 158..170) are 1 - false only for pcod's all-zero blocks (see above)
+  - trigger:
+      - trigger: state
+        entity_id:
+          - sensor.wp_statusblock
+          - sensor.wp_leistungsblock
+    binary_sensor:
+      - name: "Wärmepumpe Verdichter"
+        unique_id: waermepumpe_verdichter
+        device_class: running
+        icon: mdi:heat-pump
+        state: >
+          {% set r = states('sensor.wp_statusblock').split(',') | map('int', -1) | list %}
+          {% set ok = r | length == 24 and (r[0:13] | select('eq', 1) | list | length) >= 8 %}
+          {{ (r[21] | bitwise_and(8)) > 0 if ok else this.state == 'on' }}
+      - name: "Wärmepumpe Heizungspumpe"
+        unique_id: waermepumpe_heizungspumpe
+        device_class: running
+        icon: mdi:pump
+        state: >
+          {% set r = states('sensor.wp_statusblock').split(',') | map('int', -1) | list %}
+          {% set ok = r | length == 24 and (r[0:13] | select('eq', 1) | list | length) >= 8 %}
+          {{ (r[21] | bitwise_and(2)) > 0 if ok else this.state == 'on' }}
+      - name: "Wärmepumpe Warmwasserbetrieb"
+        unique_id: waermepumpe_warmwasserbetrieb
+        icon: mdi:water-boiler
+        state: >
+          {% set r = states('sensor.wp_statusblock').split(',') | map('int', -1) | list %}
+          {% set ok = r | length == 24 and (r[0:13] | select('eq', 1) | list | length) >= 8 %}
+          {{ (r[21] | bitwise_and(256)) > 0 if ok else this.state == 'on' }}
+      - name: "Wärmepumpe Kühlbetrieb"
+        unique_id: waermepumpe_kuehlbetrieb
+        icon: mdi:snowflake
+        state: >
+          {% set r = states('sensor.wp_statusblock').split(',') | map('int', -1) | list %}
+          {% set ok = r | length == 24 and (r[0:13] | select('eq', 1) | list | length) >= 8 %}
+          {{ (r[21] | bitwise_and(128)) > 0 if ok else this.state == 'on' }}
+      - name: "Wärmepumpe Abtauung"
+        unique_id: waermepumpe_abtauung
+        icon: mdi:snowflake-melt
+        state: >
+          {% set r = states('sensor.wp_statusblock').split(',') | map('int', -1) | list %}
+          {% set ok = r | length == 24 and (r[0:13] | select('eq', 1) | list | length) >= 8 %}
+          {{ (r[21] | bitwise_and(4096)) > 0 if ok else this.state == 'on' }}
+      - name: "Wärmepumpe EVU-Sperre"
+        unique_id: waermepumpe_evu_sperre
+        icon: mdi:transmission-tower-off
+        state: >
+          {% set r = states('sensor.wp_statusblock').split(',') | map('int', -1) | list %}
+          {% set ok = r | length == 24 and (r[0:13] | select('eq', 1) | list | length) >= 8 %}
+          {{ (r[23] | bitwise_and(4)) > 0 if ok else this.state == 'on' }}
+      - name: "Wärmepumpe Unterbrechung"
+        unique_id: waermepumpe_unterbrechung
+        device_class: problem
+        icon: mdi:pause-octagon
+        state: >
+          {% set r = states('sensor.wp_statusblock').split(',') | map('int', -1) | list %}
+          {% set ok = r | length == 24 and (r[0:13] | select('eq', 1) | list | length) >= 8 %}
+          {{ (r[23] | bitwise_and(65531)) > 0 if ok else this.state == 'on' }}
+      - name: "Wärmepumpe Störung"
+        unique_id: waermepumpe_stoerung
+        device_class: problem
+        icon: mdi:alert-octagon
+        state: >
+          {% set r = states('sensor.wp_statusblock').split(',') | map('int', -1) | list %}
+          {% set ok = r | length == 24 and (r[0:13] | select('eq', 1) | list | length) >= 8 %}
+          {{ ((r[22] | bitwise_and(49151)) > 0 or (r[21] | bitwise_and(64)) > 0) if ok else this.state == 'on' }}
+  - sensor:
+      - name: "Wärmepumpe Betriebszustand"
+        unique_id: waermepumpe_betriebszustand
+        icon: >
+          {% set m = {'Störung':'mdi:alert-octagon','EVU-Sperre':'mdi:transmission-tower-off',
+                      'Unterbrechung':'mdi:pause-octagon','Abtauen':'mdi:snowflake-melt',
+                      'Warmwasser':'mdi:water-boiler','Kühlen':'mdi:snowflake','Heizen':'mdi:radiator',
+                      'Pumpenlauf':'mdi:pump','Bereit':'mdi:heat-pump-outline'} %}
+          {{ m.get(this.state, 'mdi:heat-pump') }}
+        state: >
+          {% set r = states('sensor.wp_statusblock').split(',') | map('int', -1) | list %}
+          {% set ok = r | length == 24 and (r[0:13] | select('eq', 1) | list | length) >= 8 %}
+          {% if not ok %}{{ this.state if this.state not in ['unknown', 'unavailable'] else none }}
+          {% else %}
+            {% set st, ausf, unt = r[21], r[22], r[23] %}
+            {% if (ausf | bitwise_and(49151)) > 0 or (st | bitwise_and(64)) > 0 %}Störung
+            {% elif (unt | bitwise_and(4)) > 0 %}EVU-Sperre
+            {% elif unt > 0 %}Unterbrechung
+            {% elif (st | bitwise_and(4096)) > 0 %}Abtauen
+            {% elif (st | bitwise_and(8)) > 0 and (st | bitwise_and(256)) > 0 %}Warmwasser
+            {% elif (st | bitwise_and(8)) > 0 and (st | bitwise_and(128)) > 0 %}Kühlen
+            {% elif (st | bitwise_and(8)) > 0 %}Heizen
+            {% elif (st | bitwise_and(2)) > 0 %}Pumpenlauf
+            {% else %}Bereit{% endif %}
+          {% endif %}
+        attributes:
+          schaltzustand_i51: >
+            {% set r = states('sensor.wp_statusblock').split(',') | map('int', -1) | list %}
+            {{ r[21] if r | length == 24 and r[12] == 1 else this.attributes.get('schaltzustand_i51') }}
+          ausfaelle_i52: >
+            {% set r = states('sensor.wp_statusblock').split(',') | map('int', -1) | list %}
+            {{ r[22] | bitwise_and(49151) if r | length == 24 and r[12] == 1 else this.attributes.get('ausfaelle_i52') }}
+          unterbrechungen_i53: >
+            {% set r = states('sensor.wp_statusblock').split(',') | map('int', -1) | list %}
+            {{ r[23] if r | length == 24 and r[12] == 1 else this.attributes.get('unterbrechungen_i53') }}
+      - name: "Wärmepumpe Verdichterleistung"
+        unique_id: waermepumpe_verdichterleistung
+        icon: mdi:gauge
+        unit_of_measurement: "%"
+        state_class: measurement
+        state: >
+          {% set p = states('sensor.wp_leistungsblock').split(',') | map('int', -1) | list %}
+          {{ (p[7] / 10) | round(0) if p | length == 8 and p[5] > 0 else (this.state if is_number(this.state) else none) }}
+      - name: "Wärmepumpe Pumpendrehzahl"
+        unique_id: waermepumpe_pumpendrehzahl
+        icon: mdi:pump
+        unit_of_measurement: "%"
+        state_class: measurement
+        state: >
+          {% set p = states('sensor.wp_leistungsblock').split(',') | map('int', -1) | list %}
+          {{ (p[0] / 10) | round(0) if p | length == 8 and p[5] > 0 else (this.state if is_number(this.state) else none) }}
+      # BMS switches I31 (cooling) / I32 (hot water): 1 = on, 0 = off ("Man. Betrieb aus" on the display);
+      # read-back for the holiday function
+      - name: "Wärmepumpe BMS Kühlbetrieb"
+        unique_id: waermepumpe_bms_i31
+        icon: mdi:snowflake
+        state: >
+          {% set r = states('sensor.wp_statusblock').split(',') | map('int', -1) | list %}
+          {{ r[1] if r | length == 24 and (r[0:13] | select('eq', 1) | list | length) >= 8
+             else (this.state if is_number(this.state) else none) }}
+      - name: "Wärmepumpe BMS Warmwasser"
+        unique_id: waermepumpe_bms_i32
+        icon: mdi:water-boiler
+        state: >
+          {% set r = states('sensor.wp_statusblock').split(',') | map('int', -1) | list %}
+          {{ r[2] if r | length == 24 and (r[0:13] | select('eq', 1) | list | length) >= 8
+             else (this.state if is_number(this.state) else none) }}
+      # F codes (I52) and I codes (I53) as text, texts from the Waterkotte Modbus documentation (2017);
+      # the history of these sensors shows which message was active when
+      - name: "Wärmepumpe Störungen"
+        unique_id: waermepumpe_stoerungen_text
+        icon: >
+          {{ 'mdi:check-circle-outline' if this.state in ['Keine', 'unknown', 'unavailable'] else 'mdi:alert-octagon' }}
+        state: >
+          {% set r = states('sensor.wp_statusblock').split(',') | map('int', -1) | list %}
+          {% if r | length != 24 or (r[0:13] | select('eq', 1) | list | length) < 8 %}
+            {{ this.state if this.state not in ['unknown', 'unavailable'] else none }}
+          {% else %}
+            {% set texts = {0: 'F100 Motorschutzschalter 1', 1: 'F101 Motorschutzschalter 2', 2: 'F102 Phasenfehler',
+                            3: 'F103 Primärseite', 4: 'F110 HD-Pressostat', 5: 'F120 ND-Pressostat',
+                            6: 'F121 Drucküberwachung Verdampfer', 7: 'F122 Temperaturüberwachung Verdampfer',
+                            8: 'F123 Nasslauf', 9: 'F111 Verflüssigungstemperatur zu niedrig',
+                            10: 'F104 Störung Sekundärseite', 11: 'F105 Motorschutzschalter 3',
+                            12: 'F130 Ausfall 4-Wege-Ventil'} %}
+            {% set ns = namespace(l=[]) %}
+            {% for b, t in texts.items() if (r[22] | bitwise_and(2 ** b)) > 0 %}{% set ns.l = ns.l + [t] %}{% endfor %}
+            {% if not ns.l and (r[22] | bitwise_and(32768)) > 0 %}{% set ns.l = ['Fxxx Sammelmeldung'] %}{% endif %}
+            {% if not ns.l and (r[21] | bitwise_and(64)) > 0 %}{% set ns.l = ['Alarmausgang (ohne F-Code)'] %}{% endif %}
+            {# own checks the heat pump does not detect, see "Eigene Störungen" below #}
+            {% if is_state('binary_sensor.warmepumpe_warmwasser_zu_kalt', 'on') %}{% set ns.l = ns.l + ['Warmwasser > 2 h unter Soll − 10 K'] %}{% endif %}
+            {% if is_state('binary_sensor.warmepumpe_heizkreis_zu_kalt', 'on') %}{% set ns.l = ns.l + ['Heizkreis > 2 h unter Soll − 3 K'] %}{% endif %}
+            {% if is_state('binary_sensor.warmepumpe_evu_sperre_hangt', 'on') %}{% set ns.l = ns.l + ['EVU-Sperre > 75 min aktiv'] %}{% endif %}
+            {{ ns.l | join(', ') if ns.l else 'Keine' }}
+          {% endif %}
+      - name: "Wärmepumpe Information"
+        unique_id: waermepumpe_information_text
+        icon: >
+          {{ 'mdi:check-circle-outline' if this.state in ['Keine', 'unknown', 'unavailable'] else 'mdi:information-outline' }}
+        state: >
+          {% set r = states('sensor.wp_statusblock').split(',') | map('int', -1) | list %}
+          {% if r | length != 24 or (r[0:13] | select('eq', 1) | list | length) < 8 %}
+            {{ this.state if this.state not in ['unknown', 'unavailable'] else none }}
+          {% else %}
+            {% set texts = {0: 'I011 T Quelle aus < OK', 1: 'I012 p Kondensator > OK', 2: 'I013 Ext. Abschaltung (EVU)',
+                            3: 'I014 Schalthäufigkeit Verdichter', 4: 'I014 Schalthäufigkeit Verdichter',
+                            5: 'I014 Schalthäufigkeit ext. Wärmeerzeuger', 6: 'I015 T Quelle aus ERR',
+                            7: 'I501 Vorlauftemperaturgrenzwert im Kühlkreis unterschritten',
+                            8: 'I502 Rücklauftemperaturgrenzwert im Kühlkreis unterschritten',
+                            9: 'I019 Stillstandszeit Verdichter', 10: 'I019 Stillstandszeit Verdichter',
+                            11: 'I019 Stillstandszeit Verdichter', 12: 'I019 Stillstandszeit Verdichter',
+                            13: 'I014 Schalthäufigkeit Verdichter', 14: 'I014 Schalthäufigkeit Verdichter'} %}
+            {% set ns = namespace(l=[]) %}
+            {% for b, t in texts.items() if (r[23] | bitwise_and(2 ** b)) > 0 and t not in ns.l %}{% set ns.l = ns.l + [t] %}{% endfor %}
+            {% if not ns.l and (r[23] | bitwise_and(32768)) > 0 %}{% set ns.l = ['Ixxx Sammelmeldung'] %}{% endif %}
+            {{ ns.l | join(', ') if ns.l else 'Keine' }}
+          {% endif %}
+  - trigger:
+      - trigger: state
+        entity_id:
+          - sensor.wp_warmwasserblock
+          - sensor.wp_kennlinienblock
+          - sensor.wp_kuhlblock
+          - sensor.wp_heizen_schaltdifferenz
+          - sensor.warmepumpe_heizkreis_soll
+    sensor:
+      - name: "Wärmepumpe Warmwasser Sollwert"
+        unique_id: waermepumpe_ww_sollwert_a38
+        unit_of_measurement: "°C"
+        device_class: temperature
+        state: >
+          {% set r = states('sensor.wp_warmwasserblock').split(',') | map('float', 0) | list %}
+          {{ (r[1] / 10) | round(1) if r | length == 2 and r[0] > 0 and r[1] > 0
+             else (this.state if is_number(this.state) else none) }}
+      - name: "Wärmepumpe Kennlinie Heizkreis Norm"
+        unique_id: waermepumpe_kl_a92
+        unit_of_measurement: "°C"
+        device_class: temperature
+        state: >
+          {% set r = states('sensor.wp_kennlinienblock').split(',') | map('float', 0) | list %}
+          {{ (r[1] / 10) | round(1) if r | length == 6 and r[0] < 0 and r[4] > 0
+             else (this.state if is_number(this.state) else none) }}
+      - name: "Wärmepumpe Kennlinie Heizgrenze"
+        unique_id: waermepumpe_kl_a93
+        unit_of_measurement: "°C"
+        device_class: temperature
+        state: >
+          {% set r = states('sensor.wp_kennlinienblock').split(',') | map('float', 0) | list %}
+          {{ (r[2] / 10) | round(1) if r | length == 6 and r[0] < 0 and r[4] > 0
+             else (this.state if is_number(this.state) else none) }}
+      - name: "Wärmepumpe Kennlinie Heizgrenze Soll"
+        unique_id: waermepumpe_kl_a94
+        unit_of_measurement: "°C"
+        device_class: temperature
+        state: >
+          {% set r = states('sensor.wp_kennlinienblock').split(',') | map('float', 0) | list %}
+          {{ (r[3] / 10) | round(1) if r | length == 6 and r[0] < 0 and r[4] > 0
+             else (this.state if is_number(this.state) else none) }}
+      - name: "Wärmepumpe Kennlinie Norm-Außentemperatur"
+        unique_id: waermepumpe_kl_a91
+        unit_of_measurement: "°C"
+        device_class: temperature
+        state: >
+          {% set r = states('sensor.wp_kennlinienblock').split(',') | map('float', 0) | list %}
+          {{ (r[0] / 10) | round(1) if r | length == 6 and r[0] < 0 and r[4] > 0
+             else (this.state if is_number(this.state) else none) }}
+      - name: "Wärmepumpe Kennlinie Max Rücklauf"
+        unique_id: waermepumpe_kl_a95
+        unit_of_measurement: "°C"
+        device_class: temperature
+        state: >
+          {% set r = states('sensor.wp_kennlinienblock').split(',') | map('float', 0) | list %}
+          {{ (r[4] / 10) | round(1) if r | length == 6 and r[0] < 0 and r[4] > 0
+             else (this.state if is_number(this.state) else none) }}
+      - name: "Wärmepumpe Kennlinie Anpassung"
+        unique_id: waermepumpe_kl_anpassung
+        unit_of_measurement: "K"
+        icon: mdi:tune-vertical
+        state: >
+          {% set r = states('sensor.wp_kennlinienblock').split(',') | map('float', 0) | list %}
+          {% set a31 = states('sensor.warmepumpe_heizkreis_soll') %}
+          {{ (a31 | float - r[5] / 10) | round(1) if r | length == 6 and r[0] < 0 and r[5] > 0 and is_number(a31)
+             else (this.state if is_number(this.state) else none) }}
+      # Kühlbetrieb (WP switches to cooling above the Kühlgrenze, 24 h outside temperature);
+      # it cools once the return reaches Soll + Schaltdifferenz and then down to the Soll
+      - name: "Wärmepumpe Kühlgrenze"
+        unique_id: waermepumpe_kuehl_a108
+        unit_of_measurement: "°C"
+        device_class: temperature
+        icon: mdi:snowflake-thermometer
+        state: >
+          {% set r = states('sensor.wp_kuhlblock').split(',') | map('float', 0) | list %}
+          {{ (r[1] / 10) | round(1) if r | length == 3 and r[1] > 0 and r[2] > 0
+             else (this.state if is_number(this.state) else none) }}
+      - name: "Wärmepumpe Kühlkreis Soll"
+        unique_id: waermepumpe_kuehl_a109
+        unit_of_measurement: "°C"
+        device_class: temperature
+        icon: mdi:snowflake-thermometer
+        state: >
+          {% set r = states('sensor.wp_kuhlblock').split(',') | map('float', 0) | list %}
+          {{ (r[2] / 10) | round(1) if r | length == 3 and r[1] > 0 and r[2] > 0
+             else (this.state if is_number(this.state) else none) }}
+      - name: "Wärmepumpe Kühlen Schaltdifferenz"
+        unique_id: waermepumpe_kuehl_a107
+        unit_of_measurement: "K"
+        icon: mdi:arrow-expand-vertical
+        state: >
+          {% set r = states('sensor.wp_kuhlblock').split(',') | map('float', 0) | list %}
+          {{ (r[0] / 10) | round(1) if r | length == 3 and r[1] > 0 and r[2] > 0
+             else (this.state if is_number(this.state) else none) }}
+      - name: "Wärmepumpe Heizen Schaltdifferenz"
+        unique_id: waermepumpe_heiz_a61
+        unit_of_measurement: "K"
+        icon: mdi:arrow-expand-vertical
+        state: >
+          {% set r = states('sensor.wp_heizen_schaltdifferenz') %}
+          {{ (r | float / 10) | round(1) if is_number(r) and r | float > 0
+             else (this.state if is_number(this.state) else none) }}
+  # Betriebsmodus as on the heat pump display: the WP chooses it from the 24 h outside temperature
+  # (heating up to the Heizgrenze, cooling above the Kühlgrenze, neutral = only hot water in between);
+  # shows "Urlaub" while the HA holiday function is active, the temperature mode stays in attribute "modus"
+  - sensor:
+      - name: "Wärmepumpe Betriebsmodus"
+        unique_id: waermepumpe_betriebsmodus
+        icon: >
+          {% set t = states('sensor.warmepumpe_aussentemperatur_24h') %}
+          {% set hg = states('sensor.warmepumpe_kennlinie_heizgrenze') %}
+          {% set kg = states('sensor.warmepumpe_kuhlgrenze') %}
+          {% if is_state('input_boolean.wp_urlaub_aktiv', 'on') %}mdi:beach
+          {% elif not (is_number(t) and is_number(hg) and is_number(kg)) %}mdi:help-circle-outline
+          {% elif t | float <= hg | float %}mdi:weather-cloudy
+          {% elif t | float > kg | float %}mdi:weather-sunny
+          {% else %}mdi:weather-partly-cloudy{% endif %}
+        state: >
+          {% set t = states('sensor.warmepumpe_aussentemperatur_24h') %}
+          {% set hg = states('sensor.warmepumpe_kennlinie_heizgrenze') %}
+          {% set kg = states('sensor.warmepumpe_kuhlgrenze') %}
+          {% if is_state('input_boolean.wp_urlaub_aktiv', 'on') %}Urlaub
+          {% elif not (is_number(t) and is_number(hg) and is_number(kg)) %}{{ none }}
+          {% elif t | float <= hg | float %}Heizbetrieb
+          {% elif t | float > kg | float %}Kühlbetrieb
+          {% else %}Neutral{% endif %}
+        attributes:
+          modus: >
+            {% set t = states('sensor.warmepumpe_aussentemperatur_24h') %}
+            {% set hg = states('sensor.warmepumpe_kennlinie_heizgrenze') %}
+            {% set kg = states('sensor.warmepumpe_kuhlgrenze') %}
+            {% if not (is_number(t) and is_number(hg) and is_number(kg)) %}{{ none }}
+            {% elif t | float <= hg | float %}Heizbetrieb
+            {% elif t | float > kg | float %}Kühlbetrieb
+            {% else %}Neutral{% endif %}
+  # Eigene Störungen: hot water or heating not working. 2 h delay so that EVU locks and hot water charges
+  # do not trigger them; shown in "Wärmepumpe Störungen"
+  - binary_sensor:
+      - name: "Wärmepumpe Warmwasser zu kalt"
+        unique_id: waermepumpe_warmwasser_zu_kalt
+        device_class: problem
+        icon: mdi:water-boiler-alert
+        delay_on: "02:00:00"
+        state: >
+          {% set ist = states('sensor.warmepumpe_warmwasser') %}
+          {% set soll = states('sensor.warmepumpe_warmwasser_soll') %}
+          {# not while hot water is switched off by BMS (I32 = 0, e.g. holiday) #}
+          {{ is_number(ist) and is_number(soll) and ist | float < soll | float - 10
+             and is_state('sensor.warmepumpe_bms_warmwasser', '1') }}
+      # only in heating mode: in neutral / cooling mode the circuit is below the heating setpoint anyway
+      - name: "Wärmepumpe Heizkreis zu kalt"
+        unique_id: waermepumpe_heizkreis_zu_kalt
+        device_class: problem
+        icon: mdi:radiator-off
+        delay_on: "02:00:00"
+        state: >
+          {% set ist = states('sensor.warmepumpe_heizkreis_ist') %}
+          {% set soll = states('sensor.warmepumpe_heizkreis_soll') %}
+          {{ is_state_attr('sensor.warmepumpe_betriebsmodus', 'modus', 'Heizbetrieb') and is_number(ist) and is_number(soll)
+             and ist | float < soll | float - 3 }}
+      # the time switch locks 30 / 30 / 60 min a day; longer means the heat pump missed the end of the lock
+      - name: "Wärmepumpe EVU-Sperre hängt"
+        unique_id: waermepumpe_evu_sperre_haengt
+        device_class: problem
+        icon: mdi:transmission-tower-off
+        delay_on: "01:15:00"
+        state: >
+          {{ is_state('binary_sensor.warmepumpe_evu_sperre', 'on') }}
+  # derived values: spread, temperatures only while water flows, deviation, cyclic measurement, defrost
+  - sensor:
+      - name: "Wärmepumpe Spreizung"
+        unique_id: waermepumpe_spreizung
+        unit_of_measurement: "K"
+        state_class: measurement
+        availability: >
+          {% set v = states.binary_sensor.warmepumpe_verdichter %}
+          {{ v is not none and v.state == 'on'
+             and is_state('binary_sensor.warmepumpe_warmwasserbetrieb', 'off')
+             and (now() - v.last_changed).total_seconds() > 300
+             and (states.binary_sensor.warmepumpe_abtauung_erkannt is none
+                  or (is_state('binary_sensor.warmepumpe_abtauung_erkannt', 'off')
+                      and (now() - states.binary_sensor.warmepumpe_abtauung_erkannt.last_changed).total_seconds() > 180))
+             and is_number(states('sensor.warmepumpe_vorlauf'))
+             and is_number(states('sensor.warmepumpe_rucklauf'))
+             and states('sensor.warmepumpe_vorlauf') | float >= states('sensor.warmepumpe_rucklauf') | float }}
+        state: >
+          {{ (states('sensor.warmepumpe_vorlauf') | float(0)
+              - states('sensor.warmepumpe_rucklauf') | float(0)) | round(1) }}
+      - name: "Wärmepumpe Vorlauf (Durchfluss)"
+        unique_id: waermepumpe_vorlauf_durchfluss
+        unit_of_measurement: "°C"
+        device_class: temperature
+        state_class: measurement
+        availability: >
+          {% set p = states.binary_sensor.warmepumpe_heizungspumpe %}
+          {{ p is not none and p.state == 'on'
+             and (now() - p.last_changed).total_seconds() > 60
+             and (is_state('binary_sensor.warmepumpe_warmwasserbetrieb', 'off')
+                  and (now() - states.binary_sensor.warmepumpe_warmwasserbetrieb.last_changed).total_seconds() > 180)
+             and (is_state('binary_sensor.warmepumpe_abtauung_erkannt', 'off')
+                  and (now() - states.binary_sensor.warmepumpe_abtauung_erkannt.last_changed).total_seconds() > 180)
+             and is_number(states('sensor.warmepumpe_vorlauf')) }}
+        state: "{{ states('sensor.warmepumpe_vorlauf') }}"
+      - name: "Wärmepumpe Rücklauf (Durchfluss)"
+        unique_id: waermepumpe_ruecklauf_durchfluss
+        unit_of_measurement: "°C"
+        device_class: temperature
+        state_class: measurement
+        availability: >
+          {% set p = states.binary_sensor.warmepumpe_heizungspumpe %}
+          {{ p is not none and p.state == 'on'
+             and (now() - p.last_changed).total_seconds() > 60
+             and (is_state('binary_sensor.warmepumpe_warmwasserbetrieb', 'off')
+                  and (now() - states.binary_sensor.warmepumpe_warmwasserbetrieb.last_changed).total_seconds() > 180)
+             and (is_state('binary_sensor.warmepumpe_abtauung_erkannt', 'off')
+                  and (now() - states.binary_sensor.warmepumpe_abtauung_erkannt.last_changed).total_seconds() > 180)
+             and is_number(states('sensor.warmepumpe_rucklauf')) }}
+        state: "{{ states('sensor.warmepumpe_rucklauf') }}"
+      - name: "Wärmepumpe Heizkreis Abweichung"
+        unique_id: waermepumpe_heizkreis_abweichung
+        unit_of_measurement: "K"
+        state_class: measurement
+        availability: >
+          {{ is_number(states('sensor.warmepumpe_heizkreis_ist'))
+             and is_number(states('sensor.warmepumpe_heizkreis_soll')) }}
+        state: >
+          {{ (states('sensor.warmepumpe_heizkreis_ist') | float
+              - states('sensor.warmepumpe_heizkreis_soll') | float) | round(1) }}
+
+  - binary_sensor:
+      - name: "Wärmepumpe Zyklische Messung"
+        unique_id: waermepumpe_zyklische_messung
+        device_class: running
+        state: >
+          {% set p = states.binary_sensor.warmepumpe_heizungspumpe %}
+          {% set v = states.binary_sensor.warmepumpe_verdichter %}
+          {{ p is not none and v is not none and p.state == 'on' and v.state == 'off'
+             and is_state('binary_sensor.warmepumpe_warmwasserbetrieb', 'off')
+             and (now() - v.last_changed).total_seconds() > 240 }}
+  - binary_sensor:
+      - name: "Wärmepumpe Abtauung erkannt"
+        unique_id: waermepumpe_abtauung_erkannt
+        device_class: running
+        state: >
+          {{ is_state('binary_sensor.warmepumpe_verdichter', 'on')
+             and is_state('binary_sensor.warmepumpe_warmwasserbetrieb', 'off')
+             and is_number(states('sensor.warmepumpe_vorlauf')) and is_number(states('sensor.warmepumpe_rucklauf'))
+             and states('sensor.warmepumpe_vorlauf') | float < states('sensor.warmepumpe_rucklauf') | float - 1.0 }}
+
+# helpers: settings mirrored from the heat pump, holiday function, write status, operating hours
+input_number:
+  wp_warmwasser_soll_vorgabe:
+    name: WP Warmwasser Soll Vorgabe
+    min: 40
+    max: 55
+    step: 0.5
+    mode: slider
+    unit_of_measurement: °C
+    icon: mdi:water-boiler
+  wp_urlaub_temperaturabsenkung:
+    name: WP Urlaub Temperaturabsenkung
+    min: -10
+    max: 0
+    step: 0.1
+    mode: box
+    unit_of_measurement: K
+    icon: mdi:thermometer-minus
+  wp_backup_bms_kuhlbetrieb:
+    name: WP Backup BMS Kühlbetrieb
+    min: 0
+    max: 1
+    step: 1
+    mode: box
+  wp_backup_bms_warmwasser:
+    name: WP Backup BMS Warmwasser
+    min: 0
+    max: 1
+    step: 1
+    mode: box
+  wp_backup_heizkreis_norm:
+    name: WP Backup Heizkreis Norm
+    min: 0
+    max: 70
+    step: 0.1
+    mode: box
+    unit_of_measurement: °C
+  wp_backup_heizgrenze_soll:
+    name: WP Backup Heizgrenze Soll
+    min: 0
+    max: 70
+    step: 0.1
+    mode: box
+    unit_of_measurement: °C
+  wp_betriebsstunden_aussengerat:
+    name: WP Betriebsstunden Außengerät
+    min: 0
+    max: 100000
+    step: 0.01
+    mode: box
+    unit_of_measurement: h
+    icon: mdi:timer-outline
+  wp_betriebsstunden_heizungspumpe:
+    name: WP Betriebsstunden Heizungspumpe
+    min: 0
+    max: 100000
+    step: 0.01
+    mode: box
+    unit_of_measurement: h
+    icon: mdi:timer-outline
+  wp_laufzeit_aussengerat_jahr:
+    name: WP Laufzeit Außengerät Jahr
+    min: 0
+    max: 100000
+    step: 0.01
+    mode: box
+    unit_of_measurement: h
+    icon: mdi:timer-outline
+  wp_laufzeit_heizungspumpe_jahr:
+    name: WP Laufzeit Heizungspumpe Jahr
+    min: 0
+    max: 100000
+    step: 0.01
+    mode: box
+    unit_of_measurement: h
+    icon: mdi:timer-outline
+  wp_laufzeit_heizen_jahr:
+    name: WP Laufzeit Heizen Jahr
+    min: 0
+    max: 100000
+    step: 0.01
+    mode: box
+    unit_of_measurement: h
+    icon: mdi:timer-outline
+  wp_laufzeit_warmwasser_jahr:
+    name: WP Laufzeit Warmwasser Jahr
+    min: 0
+    max: 100000
+    step: 0.01
+    mode: box
+    unit_of_measurement: h
+    icon: mdi:timer-outline
+  wp_laufzeit_kuhlen_jahr:
+    name: WP Laufzeit Kühlen Jahr
+    min: 0
+    max: 100000
+    step: 0.01
+    mode: box
+    unit_of_measurement: h
+    icon: mdi:timer-outline
+  wp_laufzeit_aussengerat_vorjahr:
+    name: WP Laufzeit Außengerät Vorjahr
+    min: 0
+    max: 100000
+    step: 0.01
+    mode: box
+    unit_of_measurement: h
+    icon: mdi:timer-sand-complete
+  wp_laufzeit_heizungspumpe_vorjahr:
+    name: WP Laufzeit Heizungspumpe Vorjahr
+    min: 0
+    max: 100000
+    step: 0.01
+    mode: box
+    unit_of_measurement: h
+    icon: mdi:timer-sand-complete
+  wp_laufzeit_heizen_vorjahr:
+    name: WP Laufzeit Heizen Vorjahr
+    min: 0
+    max: 100000
+    step: 0.01
+    mode: box
+    unit_of_measurement: h
+    icon: mdi:timer-sand-complete
+  wp_laufzeit_warmwasser_vorjahr:
+    name: WP Laufzeit Warmwasser Vorjahr
+    min: 0
+    max: 100000
+    step: 0.01
+    mode: box
+    unit_of_measurement: h
+    icon: mdi:timer-sand-complete
+  wp_laufzeit_kuhlen_vorjahr:
+    name: WP Laufzeit Kühlen Vorjahr
+    min: 0
+    max: 100000
+    step: 0.01
+    mode: box
+    unit_of_measurement: h
+    icon: mdi:timer-sand-complete
+  wp_heizgrenze_vorgabe:
+    name: WP Heizgrenze Vorgabe
+    min: 8.0
+    max: 20.0
+    step: 0.1
+    mode: box
+    unit_of_measurement: °C
+    icon: mdi:sun-thermometer
+  wp_heizkreis_sollwert_norm_vorgabe:
+    name: WP Heizkreis Sollwert Norm Vorgabe
+    min: 20.0
+    max: 40.0
+    step: 0.1
+    mode: box
+    unit_of_measurement: °C
+    icon: mdi:thermometer-high
+  wp_heizgrenze_soll_vorgabe:
+    name: WP Heizgrenze Soll Vorgabe
+    min: 18.0
+    max: 30.0
+    step: 0.1
+    mode: box
+    unit_of_measurement: °C
+    icon: mdi:thermometer-low
+  wp_heizen_schaltdifferenz_vorgabe:
+    name: WP Heizen Schaltdifferenz Vorgabe
+    min: 0.5
+    max: 5.0
+    step: 0.1
+    mode: box
+    unit_of_measurement: K
+    icon: mdi:arrow-expand-vertical
+  wp_kuhlkreis_soll_vorgabe:
+    name: WP Kühlkreis Soll Vorgabe
+    min: 18.0
+    max: 25.0
+    step: 0.1
+    mode: box
+    unit_of_measurement: °C
+    icon: mdi:snowflake-thermometer
+  wp_kuhlgrenze_vorgabe:
+    name: WP Kühlgrenze Vorgabe
+    min: 18.0
+    max: 30.0
+    step: 0.1
+    mode: box
+    unit_of_measurement: °C
+    icon: mdi:snowflake-thermometer
+  wp_kuhlen_schaltdifferenz_vorgabe:
+    name: WP Kühlen Schaltdifferenz Vorgabe
+    min: 0.5
+    max: 5.0
+    step: 0.1
+    mode: box
+    unit_of_measurement: K
+    icon: mdi:arrow-expand-vertical
+
+input_boolean:
+  wp_urlaub_kuhlbetrieb_blockieren:
+    name: WP Urlaub Kühlbetrieb blockieren
+    icon: mdi:snowflake-off
+  wp_urlaub_warmwasser_blockieren:
+    name: WP Urlaub Warmwasser blockieren
+    icon: mdi:water-boiler-off
+  wp_urlaub_geplant:
+    name: WP Urlaub geplant
+    icon: mdi:calendar-check
+  wp_urlaub_aktiv:
+    name: WP Urlaub aktiv
+    icon: mdi:beach
+  wp_eingerichtet:
+    name: WP eingerichtet
+    icon: mdi:check
+
+input_datetime:
+  wp_urlaub_beginn:
+    name: WP Urlaub Beginn
+    has_date: true
+    has_time: true
+    icon: mdi:airplane-takeoff
+  wp_urlaub_ende:
+    name: WP Urlaub Ende
+    has_date: true
+    has_time: true
+    icon: mdi:airplane-landing
+
+input_text:
+  wp_schreibstatus:
+    name: WP Schreibstatus
+    max: 255
+    icon: mdi:swap-vertical
+
+counter:
+  wp_schreibversuche:
+    name: WP Schreibversuche
+    icon: mdi:counter
+    initial: 0
+    step: 1
+
+# script.wp_benachrichtigen: all messages of the package go through this script. For push messages to a phone with
+# the companion app, replace the action with
+#     - action: notify.mobile_app_<your_phone>
+#       data:
+#         title: "{{ title }}"
+#         message: "{{ message }}"
+#         data: "{{ data | default({}) }}"
+script:
+  wp_benachrichtigen:
+    alias: 'WP: Benachrichtigen'
+    description: 'Alle Meldungen der Wärmepumpe laufen hierüber. Standard: Benachrichtigung in Home Assistant. Für Push aufs
+      Handy die Aktion durch notify.mobile_app_<gerät> ersetzen (siehe Kommentar).'
+    mode: queued
+    icon: mdi:message-alert
+    fields:
+      title:
+        description: Titel
+      message:
+        description: Text
+      data:
+        description: Zusatzdaten für notify (tag, clickAction, …)
+    sequence:
+    - action: persistent_notification.create
+      data:
+        title: '{{ title }}'
+        message: '{{ message }}'
+        notification_id: '{{ (data | default({})).get(''tag'', ''waermepumpe'') }}'
+  wp_register_schreiben:
+    alias: 'WP: Wert an Wärmepumpe schreiben'
+    description: FC6 über mbproxy auf der pCOWeb, bis zu 30 s auf den Read-back warten, sonst einmal nachschreiben; danach
+      Benachrichtigung.
+    mode: queued
+    icon: mdi:upload
+    fields:
+      address:
+        description: Register (A-Nummer)
+      value:
+        description: Wert in °C
+      sensor:
+        description: Sensor zur Kontrolle
+      label:
+        description: Bezeichnung
+      scale:
+        description: Rohwert = Wert × scale (Standard 10; 1 für die BMS-Schalter I31/I32)
+    sequence:
+    - variables:
+        raw: '{{ (value | float * (scale | default(10)) | float) | round(0) | int }}'
+    - action: input_text.set_value
+      target:
+        entity_id: input_text.wp_schreibstatus
+      data:
+        value: ⏳ {{ label }} → {{ value }} … ({{ now().strftime('%H:%M') }})
+    - repeat:
+        sequence:
+        - action: counter.increment
+          target:
+            entity_id: counter.wp_schreibversuche
+        - action: modbus.write_register
+          continue_on_error: true
+          data:
+            hub: waterkotte
+            slave: 1
+            address: '{{ address | int }}'
+            value: '{{ raw }}'
+        - wait_template: '{{ (states(sensor) | float(-999) - value | float) | abs < 0.05 }}'
+          timeout:
+            seconds: 30
+          continue_on_timeout: true
+        until: '{{ (states(sensor) | float(-999) - value | float) | abs < 0.05 or repeat.index >= 2 }}'
+    - if:
+      - condition: template
+        value_template: '{{ (states(sensor) | float(-999) - value | float) | abs < 0.05 }}'
+      then:
+      - action: input_text.set_value
+        target:
+          entity_id: input_text.wp_schreibstatus
+        data:
+          value: ✅ {{ label }} = {{ value }} übernommen ({{ now().strftime('%d.%m. %H:%M') }})
+      else:
+      - action: input_text.set_value
+        target:
+          entity_id: input_text.wp_schreibstatus
+        data:
+          value: ❌ {{ label }} → {{ value }} nicht übernommen ({{ now().strftime('%d.%m. %H:%M') }})
+      - action: script.wp_benachrichtigen
+        data:
+          title: Wärmepumpe
+          message: '{{ label }} konnte nach 2 Versuchen nicht auf {{ value }} gesetzt werden (Wärmepumpe/Karte nicht erreichbar?).'
+  wp_kennlinie_verschieben:
+    alias: 'WP: Kennlinie verschieben'
+    description: Verschiebt Heizkreis Norm (A92) und Heizgrenze Soll (A94) gemeinsam (Parallelverschiebung).
+    mode: single
+    icon: mdi:chart-line-variant
+    fields:
+      delta:
+        description: Verschiebung in K, z. B. 0.5 oder -0.5
+    sequence:
+    - variables:
+        n92: '{{ (states(''sensor.warmepumpe_kennlinie_heizkreis_norm'') | float + delta | float) | round(1) }}'
+        n94: '{{ (states(''sensor.warmepumpe_kennlinie_heizgrenze_soll'') | float + delta | float) | round(1) }}'
+    - condition: template
+      value_template: '{{ 10 <= n92 <= 45 and 8 <= n94 <= 35 and n94 < n92 }}'
+    - action: script.wp_register_schreiben
+      data:
+        address: 92
+        value: '{{ n92 }}'
+        sensor: sensor.warmepumpe_kennlinie_heizkreis_norm
+        label: Kennlinie Heizkreis Norm
+    - action: script.wp_register_schreiben
+      data:
+        address: 94
+        value: '{{ n94 }}'
+        sensor: sensor.warmepumpe_kennlinie_heizgrenze_soll
+        label: Kennlinie Heizgrenze Soll
+  wp_kennlinie_waermer:
+    alias: Kennlinie wärmer
+    icon: mdi:thermometer-plus
+    mode: single
+    sequence:
+    - action: script.wp_kennlinie_verschieben
+      data:
+        delta: 0.5
+  wp_kennlinie_kaelter:
+    alias: Kennlinie kälter
+    icon: mdi:thermometer-minus
+    mode: single
+    sequence:
+    - action: script.wp_kennlinie_verschieben
+      data:
+        delta: -0.5
+  wp_urlaub_starten:
+    alias: 'WP: Urlaub starten'
+    icon: mdi:airplane-takeoff
+    mode: single
+    description: 'Wie die Urlaubsfunktion der Steuerung: Heizkreis um die Temperaturabsenkung senken (Parallelverschiebung
+      A92/A94), optional Kühlbetrieb (I31) und Warmwasser (I32) per BMS aus.'
+    sequence:
+    - condition: state
+      entity_id: input_boolean.wp_urlaub_aktiv
+      state: 'off'
+    - action: input_number.set_value
+      target:
+        entity_id: input_number.wp_backup_heizkreis_norm
+      data:
+        value: '{{ states(''sensor.warmepumpe_kennlinie_heizkreis_norm'') | float }}'
+    - action: input_number.set_value
+      target:
+        entity_id: input_number.wp_backup_heizgrenze_soll
+      data:
+        value: '{{ states(''sensor.warmepumpe_kennlinie_heizgrenze_soll'') | float }}'
+    - action: input_number.set_value
+      target:
+        entity_id: input_number.wp_backup_bms_kuhlbetrieb
+      data:
+        value: '{{ states(''sensor.warmepumpe_bms_kuhlbetrieb'') | int(1) }}'
+    - action: input_number.set_value
+      target:
+        entity_id: input_number.wp_backup_bms_warmwasser
+      data:
+        value: '{{ states(''sensor.warmepumpe_bms_warmwasser'') | int(1) }}'
+    - action: input_boolean.turn_on
+      target:
+        entity_id: input_boolean.wp_urlaub_aktiv
+    - if:
+      - condition: template
+        value_template: '{{ states(''input_number.wp_urlaub_temperaturabsenkung'') | float(0) != 0 }}'
+      then:
+      - action: script.wp_kennlinie_verschieben
+        data:
+          delta: '{{ states(''input_number.wp_urlaub_temperaturabsenkung'') | float }}'
+    - if:
+      - condition: state
+        entity_id: input_boolean.wp_urlaub_kuhlbetrieb_blockieren
+        state: 'on'
+      - condition: state
+        entity_id: sensor.warmepumpe_bms_kuhlbetrieb
+        state: '1'
+      then:
+      - action: script.wp_register_schreiben
+        data:
+          address: 159
+          value: 0
+          scale: 1
+          sensor: sensor.warmepumpe_bms_kuhlbetrieb
+          label: 'Urlaub: Kühlbetrieb aus'
+    - if:
+      - condition: state
+        entity_id: input_boolean.wp_urlaub_warmwasser_blockieren
+        state: 'on'
+      - condition: state
+        entity_id: sensor.warmepumpe_bms_warmwasser
+        state: '1'
+      then:
+      - action: script.wp_register_schreiben
+        data:
+          address: 160
+          value: 0
+          scale: 1
+          sensor: sensor.warmepumpe_bms_warmwasser
+          label: 'Urlaub: Warmwasser aus'
+    - action: script.wp_benachrichtigen
+      data:
+        title: 'Wärmepumpe: Urlaub'
+        message: 'Urlaub gestartet bis {{ states(''input_datetime.wp_urlaub_ende'') | as_datetime | as_local | as_timestamp
+          | timestamp_custom(''%d.%m. %H:%M'') }}: Heizkreis {{ states(''input_number.wp_urlaub_temperaturabsenkung'') }}
+          K{{ '', Kühlbetrieb aus'' if is_state(''sensor.warmepumpe_bms_kuhlbetrieb'', ''0'') }}{{ '', Warmwasser aus'' if
+          is_state(''sensor.warmepumpe_bms_warmwasser'', ''0'') }}.'
+        data:
+          tag: wp_urlaub
+  wp_urlaub_beenden:
+    alias: 'WP: Urlaub beenden'
+    icon: mdi:airplane-landing
+    mode: single
+    description: 'Stellt Kennlinie und BMS-Schalter wieder her. Erst wenn alles übernommen ist, wird der Urlaub ausgeschaltet;
+      sonst versucht es „WP: Urlaub prüfen“ in 5 Minuten erneut.'
+    sequence:
+    - condition: state
+      entity_id: input_boolean.wp_urlaub_aktiv
+      state: 'on'
+    - variables:
+        kl_ok: '{{ states(''input_number.wp_backup_heizkreis_norm'') | float(0) > 0 }}'
+        ww_was_off: '{{ is_state(''sensor.warmepumpe_bms_warmwasser'', ''0'') }}'
+    - if:
+      - condition: template
+        value_template: '{{ kl_ok and (states(''sensor.warmepumpe_kennlinie_heizkreis_norm'') | float(0) - states(''input_number.wp_backup_heizkreis_norm'')
+          | float) | abs >= 0.05 }}'
+      then:
+      - action: script.wp_register_schreiben
+        data:
+          address: 92
+          value: '{{ states(''input_number.wp_backup_heizkreis_norm'') | float }}'
+          sensor: sensor.warmepumpe_kennlinie_heizkreis_norm
+          label: 'Urlaub Ende: Heizkreis Sollwert Norm'
+    - if:
+      - condition: template
+        value_template: '{{ kl_ok and (states(''sensor.warmepumpe_kennlinie_heizgrenze_soll'') | float(0) - states(''input_number.wp_backup_heizgrenze_soll'')
+          | float) | abs >= 0.05 }}'
+      then:
+      - action: script.wp_register_schreiben
+        data:
+          address: 94
+          value: '{{ states(''input_number.wp_backup_heizgrenze_soll'') | float }}'
+          sensor: sensor.warmepumpe_kennlinie_heizgrenze_soll
+          label: 'Urlaub Ende: Heizgrenze Soll'
+    - if:
+      - condition: template
+        value_template: '{{ states(''sensor.warmepumpe_bms_kuhlbetrieb'') | int(-1) != states(''input_number.wp_backup_bms_kuhlbetrieb'')
+          | int(1) }}'
+      then:
+      - action: script.wp_register_schreiben
+        data:
+          address: 159
+          value: '{{ states(''input_number.wp_backup_bms_kuhlbetrieb'') | int(1) }}'
+          scale: 1
+          sensor: sensor.warmepumpe_bms_kuhlbetrieb
+          label: 'Urlaub Ende: Kühlbetrieb'
+    - if:
+      - condition: template
+        value_template: '{{ states(''sensor.warmepumpe_bms_warmwasser'') | int(-1) != states(''input_number.wp_backup_bms_warmwasser'')
+          | int(1) }}'
+      then:
+      - action: script.wp_register_schreiben
+        data:
+          address: 160
+          value: '{{ states(''input_number.wp_backup_bms_warmwasser'') | int(1) }}'
+          scale: 1
+          sensor: sensor.warmepumpe_bms_warmwasser
+          label: 'Urlaub Ende: Warmwasser'
+    - if:
+      - condition: template
+        value_template: '{{ (not kl_ok or ((states(''sensor.warmepumpe_kennlinie_heizkreis_norm'') | float(0) - states(''input_number.wp_backup_heizkreis_norm'')
+          | float) | abs < 0.05 and (states(''sensor.warmepumpe_kennlinie_heizgrenze_soll'') | float(0) - states(''input_number.wp_backup_heizgrenze_soll'')
+          | float) | abs < 0.05)) and states(''sensor.warmepumpe_bms_kuhlbetrieb'') | int(-1) == states(''input_number.wp_backup_bms_kuhlbetrieb'')
+          | int(1) and states(''sensor.warmepumpe_bms_warmwasser'') | int(-1) == states(''input_number.wp_backup_bms_warmwasser'')
+          | int(1) }}'
+      then:
+      - action: input_boolean.turn_off
+        target:
+          entity_id:
+          - input_boolean.wp_urlaub_aktiv
+          - input_boolean.wp_urlaub_geplant
+      - action: script.wp_benachrichtigen
+        data:
+          title: 'Wärmepumpe: Urlaub'
+          message: 'Urlaub beendet, Kennlinie und Schalter wiederhergestellt.{{ '' Warmwasser war aus: thermische Desinfektion
+            am Display starten?'' if ww_was_off }}'
+          data:
+            tag: wp_urlaub
+      else:
+      - action: script.wp_benachrichtigen
+        data:
+          title: 'Wärmepumpe: Urlaub'
+          message: Urlaub-Ende unvollständig (Werte nicht übernommen), neuer Versuch in 5 Minuten.
+          data:
+            tag: wp_urlaub
+
+automation:
+- id: wp_ww_soll_schreiben
+  alias: 'WP: Warmwasser-Vorgabe schreiben'
+  description: Schreibt die Warmwasser-Vorgabe 10 s nach der letzten Änderung, wenn sie vom Wert der Pumpe abweicht.
+  mode: restart
+  triggers:
+  - trigger: state
+    entity_id: input_number.wp_warmwasser_soll_vorgabe
+    for:
+      seconds: 10
+    not_from:
+    - unknown
+    - unavailable
+    not_to:
+    - unknown
+    - unavailable
+  conditions:
+  - condition: template
+    value_template: '{{ is_number(states(''sensor.warmepumpe_warmwasser_sollwert'')) and (states(''input_number.wp_warmwasser_soll_vorgabe'')
+      | float - states(''sensor.warmepumpe_warmwasser_sollwert'') | float) | abs >= 0.25 }}'
+  actions:
+  - action: script.turn_on
+    target:
+      entity_id: script.wp_register_schreiben
+    data:
+      variables:
+        address: 38
+        value: '{{ states(''input_number.wp_warmwasser_soll_vorgabe'') | float }}'
+        sensor: sensor.warmepumpe_warmwasser_sollwert
+        label: Warmwasser Soll
+- id: wp_ww_soll_nachziehen
+  alias: 'WP: Warmwasser-Vorgabe nachziehen'
+  description: Übernimmt Änderungen am Display (oder fehlgeschlagene Schreibversuche) in die Vorgabe, ohne zu schreiben.
+  mode: restart
+  triggers:
+  - trigger: state
+    entity_id: sensor.warmepumpe_warmwasser_sollwert
+    for:
+      seconds: 60
+  - trigger: homeassistant
+    event: start
+  conditions:
+  - condition: template
+    value_template: '{{ is_number(states(''sensor.warmepumpe_warmwasser_sollwert'')) and not is_state(''script.wp_register_schreiben'',
+      ''on'') and (states(''input_number.wp_warmwasser_soll_vorgabe'') | float(0) - states(''sensor.warmepumpe_warmwasser_sollwert'')
+      | float) | abs >= 0.25 }}'
+  actions:
+  - action: input_number.set_value
+    target:
+      entity_id: input_number.wp_warmwasser_soll_vorgabe
+    data:
+      value: '{{ [40, [55, states(''sensor.warmepumpe_warmwasser_sollwert'') | float] | min] | max }}'
+- id: wp_einstellung_schreiben
+  alias: 'WP: Einstellungen schreiben'
+  description: Schreibt eine geänderte Heiz- oder Kühl-Einstellung 10 s nach der letzten Änderung, wenn sie vom Wert der Pumpe
+    abweicht.
+  mode: queued
+  triggers:
+  - trigger: state
+    entity_id: input_number.wp_heizgrenze_vorgabe
+    for:
+      seconds: 10
+    id: '93'
+    not_from:
+    - unknown
+    - unavailable
+    not_to:
+    - unknown
+    - unavailable
+  - trigger: state
+    entity_id: input_number.wp_heizkreis_sollwert_norm_vorgabe
+    for:
+      seconds: 10
+    id: '92'
+    not_from:
+    - unknown
+    - unavailable
+    not_to:
+    - unknown
+    - unavailable
+  - trigger: state
+    entity_id: input_number.wp_heizgrenze_soll_vorgabe
+    for:
+      seconds: 10
+    id: '94'
+    not_from:
+    - unknown
+    - unavailable
+    not_to:
+    - unknown
+    - unavailable
+  - trigger: state
+    entity_id: input_number.wp_heizen_schaltdifferenz_vorgabe
+    for:
+      seconds: 10
+    id: '61'
+    not_from:
+    - unknown
+    - unavailable
+    not_to:
+    - unknown
+    - unavailable
+  - trigger: state
+    entity_id: input_number.wp_kuhlkreis_soll_vorgabe
+    for:
+      seconds: 10
+    id: '109'
+    not_from:
+    - unknown
+    - unavailable
+    not_to:
+    - unknown
+    - unavailable
+  - trigger: state
+    entity_id: input_number.wp_kuhlgrenze_vorgabe
+    for:
+      seconds: 10
+    id: '108'
+    not_from:
+    - unknown
+    - unavailable
+    not_to:
+    - unknown
+    - unavailable
+  - trigger: state
+    entity_id: input_number.wp_kuhlen_schaltdifferenz_vorgabe
+    for:
+      seconds: 10
+    id: '107'
+    not_from:
+    - unknown
+    - unavailable
+    not_to:
+    - unknown
+    - unavailable
+  variables:
+    k:
+      '93':
+        input: input_number.wp_heizgrenze_vorgabe
+        sensor: sensor.warmepumpe_kennlinie_heizgrenze
+        label: Heizgrenze außen
+      '92':
+        input: input_number.wp_heizkreis_sollwert_norm_vorgabe
+        sensor: sensor.warmepumpe_kennlinie_heizkreis_norm
+        label: Heizkreis Sollwert Norm
+      '94':
+        input: input_number.wp_heizgrenze_soll_vorgabe
+        sensor: sensor.warmepumpe_kennlinie_heizgrenze_soll
+        label: Heizgrenze Soll
+      '61':
+        input: input_number.wp_heizen_schaltdifferenz_vorgabe
+        sensor: sensor.warmepumpe_heizen_schaltdifferenz
+        label: Heizen Schaltdifferenz
+      '109':
+        input: input_number.wp_kuhlkreis_soll_vorgabe
+        sensor: sensor.warmepumpe_kuhlkreis_soll
+        label: Kühlkreis Soll
+      '108':
+        input: input_number.wp_kuhlgrenze_vorgabe
+        sensor: sensor.warmepumpe_kuhlgrenze
+        label: Kühlgrenze außen
+      '107':
+        input: input_number.wp_kuhlen_schaltdifferenz_vorgabe
+        sensor: sensor.warmepumpe_kuhlen_schaltdifferenz
+        label: Kühlen Schaltdifferenz
+  conditions:
+  - condition: state
+    entity_id: input_boolean.wp_urlaub_aktiv
+    state: 'off'
+  - condition: template
+    value_template: '{% set c = k[trigger.id] %}{{ is_number(states(c.sensor)) and (states(c.input) | float - states(c.sensor)
+      | float) | abs >= 0.05 }}'
+  actions:
+  - action: script.turn_on
+    target:
+      entity_id: script.wp_register_schreiben
+    data:
+      variables:
+        address: '{{ trigger.id | int }}'
+        value: '{{ states(k[trigger.id].input) | float }}'
+        sensor: '{{ k[trigger.id].sensor }}'
+        label: '{{ k[trigger.id].label }}'
+- id: wp_einstellung_nachziehen
+  alias: 'WP: Einstellungen nachziehen'
+  description: Übernimmt Änderungen am Display, durch die Urlaubsfunktion oder fehlgeschlagene Schreibversuche in die Heiz-
+    und Kühl-Vorgaben, ohne zu schreiben.
+  mode: queued
+  triggers:
+  - trigger: state
+    entity_id:
+    - sensor.warmepumpe_kennlinie_heizgrenze
+    - sensor.warmepumpe_kennlinie_heizkreis_norm
+    - sensor.warmepumpe_kennlinie_heizgrenze_soll
+    - sensor.warmepumpe_heizen_schaltdifferenz
+    - sensor.warmepumpe_kuhlkreis_soll
+    - sensor.warmepumpe_kuhlgrenze
+    - sensor.warmepumpe_kuhlen_schaltdifferenz
+    for:
+      seconds: 60
+  - trigger: state
+    entity_id: script.wp_register_schreiben
+    to: 'off'
+    for:
+      seconds: 5
+  - trigger: state
+    entity_id: input_boolean.wp_urlaub_aktiv
+    to: 'off'
+    for:
+      seconds: 5
+  - trigger: homeassistant
+    event: start
+  conditions:
+  - condition: state
+    entity_id: script.wp_register_schreiben
+    state: 'off'
+  - condition: state
+    entity_id: input_boolean.wp_urlaub_aktiv
+    state: 'off'
+  actions:
+  - repeat:
+      for_each:
+      - input: input_number.wp_heizgrenze_vorgabe
+        sensor: sensor.warmepumpe_kennlinie_heizgrenze
+        min: 8.0
+        max: 20.0
+      - input: input_number.wp_heizkreis_sollwert_norm_vorgabe
+        sensor: sensor.warmepumpe_kennlinie_heizkreis_norm
+        min: 20.0
+        max: 40.0
+      - input: input_number.wp_heizgrenze_soll_vorgabe
+        sensor: sensor.warmepumpe_kennlinie_heizgrenze_soll
+        min: 18.0
+        max: 30.0
+      - input: input_number.wp_heizen_schaltdifferenz_vorgabe
+        sensor: sensor.warmepumpe_heizen_schaltdifferenz
+        min: 0.5
+        max: 5.0
+      - input: input_number.wp_kuhlkreis_soll_vorgabe
+        sensor: sensor.warmepumpe_kuhlkreis_soll
+        min: 18.0
+        max: 25.0
+      - input: input_number.wp_kuhlgrenze_vorgabe
+        sensor: sensor.warmepumpe_kuhlgrenze
+        min: 18.0
+        max: 30.0
+      - input: input_number.wp_kuhlen_schaltdifferenz_vorgabe
+        sensor: sensor.warmepumpe_kuhlen_schaltdifferenz
+        min: 0.5
+        max: 5.0
+      sequence:
+      - if:
+        - condition: template
+          value_template: '{{ is_number(states(repeat.item.sensor)) and (states(repeat.item.input) | float(0) - states(repeat.item.sensor)
+            | float) | abs >= 0.05 }}'
+        then:
+        - action: input_number.set_value
+          target:
+            entity_id: '{{ repeat.item.input }}'
+          data:
+            value: '{{ [repeat.item.min, [repeat.item.max, states(repeat.item.sensor) | float] | min] | max }}'
+- id: wp_stoerung_melden
+  alias: 'WP: Störung melden'
+  description: Push-Nachricht, sobald „Wärmepumpe Störungen“ etwas anderes als „Keine“ zeigt, und wenn es wieder behoben ist.
+  mode: queued
+  triggers:
+  - trigger: state
+    entity_id: sensor.warmepumpe_storungen
+    not_from:
+    - unknown
+    - unavailable
+    not_to:
+    - unknown
+    - unavailable
+  conditions:
+  - condition: template
+    value_template: '{{ trigger.from_state.state != trigger.to_state.state }}'
+  actions:
+  - if:
+    - condition: template
+      value_template: '{{ trigger.to_state.state != ''Keine'' }}'
+    then:
+    - action: script.wp_benachrichtigen
+      data:
+        title: 'Wärmepumpe: Störung'
+        message: '{{ trigger.to_state.state }}'
+        data:
+          tag: wp_stoerung
+          clickAction: /waerme-pumpe/uebersicht
+          priority: high
+          ttl: 0
+    else:
+    - action: script.wp_benachrichtigen
+      data:
+        title: 'Wärmepumpe: Störung behoben'
+        message: '{{ trigger.from_state.state }} liegt nicht mehr an.'
+        data:
+          tag: wp_stoerung
+          clickAction: /waerme-pumpe/uebersicht
+- id: wp_laufzeit_zaehlen
+  alias: 'WP: Betriebsstunden zählen'
+  description: Zählt jede Minute 1/60 h zu den Betriebsstunden bzw. Jahreslaufzeiten, deren Signal gerade aktiv ist (Schaltzustand
+    I51). Ersetzt die bei 16384 h stehengebliebenen Zähler der WWPR.
+  mode: single
+  triggers:
+  - trigger: time_pattern
+    minutes: /1
+  actions:
+  - if:
+    - condition: template
+      value_template: '{{ is_state(''binary_sensor.warmepumpe_verdichter'', ''on'') }}'
+    then:
+    - action: input_number.set_value
+      target:
+        entity_id: input_number.wp_betriebsstunden_aussengerat
+      data:
+        value: '{{ (states(''input_number.wp_betriebsstunden_aussengerat'') | float(0) + 1 / 60) | round(3) }}'
+  - if:
+    - condition: template
+      value_template: '{{ is_state(''binary_sensor.warmepumpe_heizungspumpe'', ''on'') }}'
+    then:
+    - action: input_number.set_value
+      target:
+        entity_id: input_number.wp_betriebsstunden_heizungspumpe
+      data:
+        value: '{{ (states(''input_number.wp_betriebsstunden_heizungspumpe'') | float(0) + 1 / 60) | round(3) }}'
+  - if:
+    - condition: template
+      value_template: '{{ is_state(''binary_sensor.warmepumpe_verdichter'', ''on'') }}'
+    then:
+    - action: input_number.set_value
+      target:
+        entity_id: input_number.wp_laufzeit_aussengerat_jahr
+      data:
+        value: '{{ (states(''input_number.wp_laufzeit_aussengerat_jahr'') | float(0) + 1 / 60) | round(3) }}'
+  - if:
+    - condition: template
+      value_template: '{{ is_state(''binary_sensor.warmepumpe_heizungspumpe'', ''on'') }}'
+    then:
+    - action: input_number.set_value
+      target:
+        entity_id: input_number.wp_laufzeit_heizungspumpe_jahr
+      data:
+        value: '{{ (states(''input_number.wp_laufzeit_heizungspumpe_jahr'') | float(0) + 1 / 60) | round(3) }}'
+  - if:
+    - condition: template
+      value_template: '{{ is_state(''binary_sensor.warmepumpe_verdichter'', ''on'') and is_state(''binary_sensor.warmepumpe_warmwasserbetrieb'',
+        ''off'') and is_state(''binary_sensor.warmepumpe_kuhlbetrieb'', ''off'') }}'
+    then:
+    - action: input_number.set_value
+      target:
+        entity_id: input_number.wp_laufzeit_heizen_jahr
+      data:
+        value: '{{ (states(''input_number.wp_laufzeit_heizen_jahr'') | float(0) + 1 / 60) | round(3) }}'
+  - if:
+    - condition: template
+      value_template: '{{ is_state(''binary_sensor.warmepumpe_verdichter'', ''on'') and is_state(''binary_sensor.warmepumpe_warmwasserbetrieb'',
+        ''on'') }}'
+    then:
+    - action: input_number.set_value
+      target:
+        entity_id: input_number.wp_laufzeit_warmwasser_jahr
+      data:
+        value: '{{ (states(''input_number.wp_laufzeit_warmwasser_jahr'') | float(0) + 1 / 60) | round(3) }}'
+  - if:
+    - condition: template
+      value_template: '{{ is_state(''binary_sensor.warmepumpe_verdichter'', ''on'') and is_state(''binary_sensor.warmepumpe_kuhlbetrieb'',
+        ''on'') }}'
+    then:
+    - action: input_number.set_value
+      target:
+        entity_id: input_number.wp_laufzeit_kuhlen_jahr
+      data:
+        value: '{{ (states(''input_number.wp_laufzeit_kuhlen_jahr'') | float(0) + 1 / 60) | round(3) }}'
+- id: wp_laufzeit_jahreswechsel
+  alias: 'WP: Jahreslaufzeiten zum Jahreswechsel'
+  description: 'Am 1.1. um 0:00: Jahreslaufzeiten (Außengerät, Heizungspumpe, Heizen, Warmwasser, Kühlen) ins Vorjahr übernehmen
+    und auf 0 setzen.'
+  mode: single
+  triggers:
+  - trigger: time
+    at: 00:00:00
+  conditions:
+  - condition: template
+    value_template: '{{ now().month == 1 and now().day == 1 }}'
+  actions:
+  - action: input_number.set_value
+    target:
+      entity_id: input_number.wp_laufzeit_aussengerat_vorjahr
+    data:
+      value: '{{ states(''input_number.wp_laufzeit_aussengerat_jahr'') | float(0) }}'
+  - action: input_number.set_value
+    target:
+      entity_id: input_number.wp_laufzeit_aussengerat_jahr
+    data:
+      value: 0
+  - action: input_number.set_value
+    target:
+      entity_id: input_number.wp_laufzeit_heizungspumpe_vorjahr
+    data:
+      value: '{{ states(''input_number.wp_laufzeit_heizungspumpe_jahr'') | float(0) }}'
+  - action: input_number.set_value
+    target:
+      entity_id: input_number.wp_laufzeit_heizungspumpe_jahr
+    data:
+      value: 0
+  - action: input_number.set_value
+    target:
+      entity_id: input_number.wp_laufzeit_heizen_vorjahr
+    data:
+      value: '{{ states(''input_number.wp_laufzeit_heizen_jahr'') | float(0) }}'
+  - action: input_number.set_value
+    target:
+      entity_id: input_number.wp_laufzeit_heizen_jahr
+    data:
+      value: 0
+  - action: input_number.set_value
+    target:
+      entity_id: input_number.wp_laufzeit_warmwasser_vorjahr
+    data:
+      value: '{{ states(''input_number.wp_laufzeit_warmwasser_jahr'') | float(0) }}'
+  - action: input_number.set_value
+    target:
+      entity_id: input_number.wp_laufzeit_warmwasser_jahr
+    data:
+      value: 0
+  - action: input_number.set_value
+    target:
+      entity_id: input_number.wp_laufzeit_kuhlen_vorjahr
+    data:
+      value: '{{ states(''input_number.wp_laufzeit_kuhlen_jahr'') | float(0) }}'
+  - action: input_number.set_value
+    target:
+      entity_id: input_number.wp_laufzeit_kuhlen_jahr
+    data:
+      value: 0
+- id: wp_urlaub_pruefen
+  alias: 'WP: Urlaub prüfen'
+  description: Startet bzw. beendet den Urlaub zum geplanten Zeitraum (alle 5 Minuten und nach dem Start von HA).
+  mode: single
+  triggers:
+  - trigger: time_pattern
+    minutes: /5
+  - trigger: homeassistant
+    event: start
+  - trigger: state
+    entity_id: input_boolean.wp_urlaub_geplant
+  actions:
+  - choose:
+    - conditions:
+      - condition: template
+        value_template: '{% set b = states(''input_datetime.wp_urlaub_beginn'') | as_datetime | as_local %}{% set e = states(''input_datetime.wp_urlaub_ende'')
+          | as_datetime | as_local %}{{ is_state(''input_boolean.wp_urlaub_geplant'', ''on'') and is_state(''input_boolean.wp_urlaub_aktiv'',
+          ''off'') and b is not none and e is not none and b <= now() < e }}'
+      sequence:
+      - action: script.wp_urlaub_starten
+    - conditions:
+      - condition: template
+        value_template: '{% set e = states(''input_datetime.wp_urlaub_ende'') | as_datetime | as_local %}{{ is_state(''input_boolean.wp_urlaub_aktiv'',
+          ''on'') and (is_state(''input_boolean.wp_urlaub_geplant'', ''off'') or (e is not none and now() >= e)) }}'
+      sequence:
+      - action: script.wp_urlaub_beenden
+- id: wp_einrichten
+  alias: 'WP: Startwerte beim ersten Start'
+  description: Setzt beim allerersten Start die Standardwerte der Urlaubsfunktion (−3 K, Kühlbetrieb und Warmwasser blockieren).
+    Danach behält Home Assistant die eigenen Einstellungen.
+  mode: single
+  triggers:
+  - trigger: homeassistant
+    event: start
+  conditions:
+  - condition: state
+    entity_id: input_boolean.wp_eingerichtet
+    state: 'off'
+  actions:
+  - action: input_number.set_value
+    target:
+      entity_id: input_number.wp_urlaub_temperaturabsenkung
+    data:
+      value: -3
+  - action: input_boolean.turn_on
+    target:
+      entity_id:
+      - input_boolean.wp_urlaub_kuhlbetrieb_blockieren
+      - input_boolean.wp_urlaub_warmwasser_blockieren
+      - input_boolean.wp_eingerichtet
