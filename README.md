@@ -29,6 +29,13 @@ Entity names and the dashboard are German, like the controller's display.
 
 The dashboard has four tabs: Übersicht, Steuerung, Urlaub, Verlauf.
 
+| Übersicht | Steuerung | Urlaub | Verlauf |
+|---|---|---|---|
+| <img src="docs/images/uebersicht.png" width="200" alt="Overview: operating mode, hot water and heating circuit gauges, temperatures, status"> | <img src="docs/images/steuerung.png" width="200" alt="Settings: hot water setpoint, heating limits, heating curve graph"> | <img src="docs/images/urlaub.png" width="200" alt="Holiday: period, lowering, block cooling and hot water"> | <img src="docs/images/verlauf.png" width="200" alt="History: operation timeline and temperatures"> |
+
+The screenshots show the author's dashboard. Its room temperature comes from a separate sensor and is not part of
+the package.
+
 ## Requirements
 
 - Waterkotte heat pump with WWPR controller and a **Carel pCOWeb** card in the controller's BMS slot ("serial
