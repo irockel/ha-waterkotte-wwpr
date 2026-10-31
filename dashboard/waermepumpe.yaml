@@ -670,3 +670,23 @@ views:
       - type: simple-entity
         entity: input_number.wp_laufzeit_kuhlen_vorjahr
         name: Kühlen
+    - type: statistics-graph
+      title: Laufzeit pro Jahr
+      grid_options:
+        columns: 12
+      period: year
+      stat_types:
+      - change
+      chart_type: bar
+      days_to_show: 3650
+      entities:
+      - entity: sensor.warmepumpe_laufzeit_aussengerat
+        name: Außengerät
+      - entity: sensor.warmepumpe_laufzeit_heizungspumpe
+        name: Heizungspumpe
+      - entity: sensor.warmepumpe_laufzeit_heizen
+        name: Heizen
+      - entity: sensor.warmepumpe_laufzeit_warmwasser
+        name: Warmwasser
+      - entity: sensor.warmepumpe_laufzeit_kuhlen
+        name: Kühlen

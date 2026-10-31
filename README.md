@@ -25,7 +25,8 @@ Entity names and the dashboard are German, like the controller's display.
 - **Holiday function** like the controller's: lower the heating circuit and block cooling / hot water for a
   planned period, then restore everything. The controller's own holiday function is not reachable via Modbus.
 - **Operating hours:** the WWPR's counters stop at 16384 h, so the package counts compressor and pump hours
-  itself, plus the runtime per year for heating, hot water and cooling.
+  itself, plus the runtime per year for heating, hot water and cooling. The long-term statistics keep every
+  year, shown as a bar chart.
 
 The dashboard has four tabs: Übersicht, Steuerung, Urlaub, Verlauf.
 

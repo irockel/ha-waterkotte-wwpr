@@ -701,6 +701,43 @@ template:
              and is_state('binary_sensor.warmepumpe_warmwasserbetrieb', 'off')
              and is_number(states('sensor.warmepumpe_vorlauf')) and is_number(states('sensor.warmepumpe_rucklauf'))
              and states('sensor.warmepumpe_vorlauf') | float < states('sensor.warmepumpe_rucklauf') | float - 1.0 }}
+  # yearly runtime for the long-term statistics (one bar per year)
+  - sensor:
+      - name: "Wärmepumpe Laufzeit Außengerät"
+        unique_id: waermepumpe_laufzeit_aussengerat
+        unit_of_measurement: "h"
+        device_class: duration
+        state_class: total_increasing
+        availability: "{{ is_number(states('input_number.wp_laufzeit_aussengerat_jahr')) }}"
+        state: "{{ states('input_number.wp_laufzeit_aussengerat_jahr') }}"
+      - name: "Wärmepumpe Laufzeit Heizungspumpe"
+        unique_id: waermepumpe_laufzeit_heizungspumpe
+        unit_of_measurement: "h"
+        device_class: duration
+        state_class: total_increasing
+        availability: "{{ is_number(states('input_number.wp_laufzeit_heizungspumpe_jahr')) }}"
+        state: "{{ states('input_number.wp_laufzeit_heizungspumpe_jahr') }}"
+      - name: "Wärmepumpe Laufzeit Heizen"
+        unique_id: waermepumpe_laufzeit_heizen
+        unit_of_measurement: "h"
+        device_class: duration
+        state_class: total_increasing
+        availability: "{{ is_number(states('input_number.wp_laufzeit_heizen_jahr')) }}"
+        state: "{{ states('input_number.wp_laufzeit_heizen_jahr') }}"
+      - name: "Wärmepumpe Laufzeit Warmwasser"
+        unique_id: waermepumpe_laufzeit_warmwasser
+        unit_of_measurement: "h"
+        device_class: duration
+        state_class: total_increasing
+        availability: "{{ is_number(states('input_number.wp_laufzeit_warmwasser_jahr')) }}"
+        state: "{{ states('input_number.wp_laufzeit_warmwasser_jahr') }}"
+      - name: "Wärmepumpe Laufzeit Kühlen"
+        unique_id: waermepumpe_laufzeit_kuhlen
+        unit_of_measurement: "h"
+        device_class: duration
+        state_class: total_increasing
+        availability: "{{ is_number(states('input_number.wp_laufzeit_kuhlen_jahr')) }}"
+        state: "{{ states('input_number.wp_laufzeit_kuhlen_jahr') }}"
 
 # helpers: settings mirrored from the heat pump, holiday function, write status, operating hours
 input_number:
