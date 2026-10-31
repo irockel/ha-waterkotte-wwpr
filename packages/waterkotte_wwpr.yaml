@@ -696,6 +696,7 @@ template:
       - name: "Wärmepumpe Abtauung erkannt"
         unique_id: waermepumpe_abtauung_erkannt
         device_class: running
+        delay_off: "00:02:00"
         state: >
           {{ is_state('binary_sensor.warmepumpe_verdichter', 'on')
              and is_state('binary_sensor.warmepumpe_warmwasserbetrieb', 'off')
