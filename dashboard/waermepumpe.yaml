@@ -170,54 +170,6 @@ views:
       - state
       - last_changed
     - type: tile
-      entity: binary_sensor.warmepumpe_verdichter
-      name: Verdichter
-      grid_options:
-        columns: 6
-      color: deep-orange
-      state_content:
-      - state
-      - last_changed
-    - type: tile
-      entity: sensor.warmepumpe_verdichterleistung
-      name: Leistung
-      grid_options:
-        columns: 6
-      color: deep-orange
-    - type: tile
-      entity: binary_sensor.warmepumpe_heizungspumpe
-      name: Heizungspumpe
-      grid_options:
-        columns: 6
-      color: cyan
-      state_content:
-      - state
-      - last_changed
-    - type: tile
-      entity: sensor.warmepumpe_pumpendrehzahl
-      name: Drehzahl
-      grid_options:
-        columns: 6
-      color: cyan
-    - type: tile
-      entity: binary_sensor.warmepumpe_warmwasserbetrieb
-      name: Warmwasser
-      grid_options:
-        columns: 6
-      color: blue
-      state_content:
-      - state
-      - last_changed
-    - type: tile
-      entity: binary_sensor.warmepumpe_evu_sperre
-      name: EVU-Sperre
-      grid_options:
-        columns: 6
-      color: amber
-      state_content:
-      - state
-      - last_changed
-    - type: tile
       entity: sensor.warmepumpe_storungen
       name: Störungen
       grid_options:
@@ -257,6 +209,36 @@ views:
       - condition: state
         entity: sensor.warmepumpe_information
         state_not: Keine
+    - type: tile
+      entity: binary_sensor.warmepumpe_verdichter
+      name: Verdichter
+      grid_options:
+        columns: 6
+      color: deep-orange
+      state_content:
+      - state
+      - last_changed
+    - type: tile
+      entity: sensor.warmepumpe_verdichterleistung
+      name: Leistung
+      grid_options:
+        columns: 6
+      color: deep-orange
+    - type: tile
+      entity: binary_sensor.warmepumpe_heizungspumpe
+      name: Heizungspumpe
+      grid_options:
+        columns: 6
+      color: cyan
+      state_content:
+      - state
+      - last_changed
+    - type: tile
+      entity: sensor.warmepumpe_pumpendrehzahl
+      name: Drehzahl
+      grid_options:
+        columns: 6
+      color: cyan
 - type: sections
   title: Steuerung
   path: steuerung

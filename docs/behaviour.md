@@ -6,7 +6,8 @@ Observations on the reference unit (Waterkotte Ai1QLi with a Mitsubishi Zubadan 
 - **Cyclic measurement:** every ~12 min the circulation pump runs ~2 min at 75 % (I51 = 2) so the sensors see
   real water. At standstill the flow sensor drifts up (local heat source), so flow and return are only
   meaningful while the pump runs. Hence `sensor.warmepumpe_vorlauf_durchfluss` / `_rucklauf_durchfluss`, which
-  only show values while water flows, and `binary_sensor.warmepumpe_zyklische_messung`.
+  only show values while water flows, and `binary_sensor.warmepumpe_zyklische_messung`. The operating state
+  shows it as "Zyklische Messung"; the pump overrun after compressor operation shows as "Pumpenlauf".
 - **Hot water charge:** request (D21, I51 bit 8, I106 = 3) → valve and pump at 100 % → compressor ~1.5 min later
   → charge → 2 min pump overrun. Switch-on point = setpoint − hysteresis (5 K on the reference unit).
 - **EVU lock:** the grid operator's time switch shows up as I53 bit 2 ("I013 Ext. Abschaltung"). A cyclic

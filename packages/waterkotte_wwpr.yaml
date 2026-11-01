@@ -344,7 +344,8 @@ template:
           {% set m = {'Störung':'mdi:alert-octagon','EVU-Sperre':'mdi:transmission-tower-off',
                       'Unterbrechung':'mdi:pause-octagon','Abtauen':'mdi:snowflake-melt',
                       'Warmwasser':'mdi:water-boiler','Kühlen':'mdi:snowflake','Heizen':'mdi:radiator',
-                      'Pumpenlauf':'mdi:pump','Bereit':'mdi:heat-pump-outline'} %}
+                      'Zyklische Messung':'mdi:thermometer-water','Pumpenlauf':'mdi:pump',
+                      'Bereit':'mdi:heat-pump-outline'} %}
           {{ m.get(this.state, 'mdi:heat-pump') }}
         state: >
           {% set r = states('sensor.wp_statusblock').split(',') | map('int', -1) | list %}
@@ -356,10 +357,13 @@ template:
             {% elif (unt | bitwise_and(4)) > 0 %}EVU-Sperre
             {% elif unt > 0 %}Unterbrechung
             {% elif (st | bitwise_and(4096)) > 0 %}Abtauen
-            {% elif (st | bitwise_and(8)) > 0 and (st | bitwise_and(256)) > 0 %}Warmwasser
+            {% elif (st | bitwise_and(10)) > 0 and (st | bitwise_and(256)) > 0 %}Warmwasser
             {% elif (st | bitwise_and(8)) > 0 and (st | bitwise_and(128)) > 0 %}Kühlen
             {% elif (st | bitwise_and(8)) > 0 %}Heizen
-            {% elif (st | bitwise_and(2)) > 0 %}Pumpenlauf
+            {% elif (st | bitwise_and(2)) > 0 %}
+              {#- pump without compressor: overrun after compressor operation, otherwise the cyclic measurement -#}
+              {{ 'Pumpenlauf' if this.state in ['Heizen', 'Warmwasser', 'Kühlen', 'Abtauen', 'Pumpenlauf']
+                 else 'Zyklische Messung' }}
             {% else %}Bereit{% endif %}
           {% endif %}
         attributes:
