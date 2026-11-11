@@ -33,6 +33,42 @@ views:
       entity: binary_sensor.warmepumpe_abtauung_erkannt
       state_not: 'on'
   - type: entity
+    entity: switch.warmepumpe_heizbetrieb
+    name: Heizung aus
+    icon: mdi:radiator-off
+    show_name: true
+    show_state: false
+    show_icon: true
+    color: orange
+    visibility:
+    - condition: state
+      entity: switch.warmepumpe_heizbetrieb
+      state: 'off'
+  - type: entity
+    entity: switch.warmepumpe_kuhlbetrieb
+    name: Kühlung aus
+    icon: mdi:snowflake-off
+    show_name: true
+    show_state: false
+    show_icon: true
+    color: orange
+    visibility:
+    - condition: state
+      entity: switch.warmepumpe_kuhlbetrieb
+      state: 'off'
+  - type: entity
+    entity: switch.warmepumpe_warmwasserbereitung
+    name: Warmwasser aus
+    icon: mdi:water-boiler-off
+    show_name: true
+    show_state: false
+    show_icon: true
+    color: orange
+    visibility:
+    - condition: state
+      entity: switch.warmepumpe_warmwasserbereitung
+      state: 'off'
+  - type: entity
     entity: sensor.warmepumpe_aussentemperatur
     name: Außen
     show_name: true
