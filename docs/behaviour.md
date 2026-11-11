@@ -28,5 +28,7 @@ Observations on the reference unit (Waterkotte Ai1QLi with a Mitsubishi Zubadan 
   only writes when a value really changes. Once the controller acknowledged a write without applying it; the
   same write a few minutes later worked, which is why `script.wp_register_schreiben` checks the read-back and
   tries once more.
-- **BMS switches:** I31 / I32 = 0 switch cooling / hot water off ("Man. Betrieb aus" on the display); 1 switches
-  them back on. I30 = 0 would switch heating off – it is never written.
+- **BMS switches:** I30 / I31 / I32 = 0 switch heating / cooling / hot water off ("Man. Betrieb aus" on the
+  display); 1 switches them back on. The Steuerung tab has a switch for each, e.g. to stop a function in an
+  emergency. They are locked while a holiday is planned or running, because the holiday function sets I31 / I32
+  itself and restores them at the end.

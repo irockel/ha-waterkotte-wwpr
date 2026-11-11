@@ -61,11 +61,11 @@ the hot water hysteresis (Schaltdifferenz Warmwasser), the display's heating cur
 | I5–I9 | 133–137 | Tag / Monat / Jahr / Stunde / Minute | ✅ | controller clock |
 | I10 | 138 | Betriebsstunden Verdichter 1 | ✅ | **stops at 16384 (2^14)** – also on the display and in the yearly statistics |
 | I18 | 146 | Betriebsstunden Heizungsumwälzpumpe | ✅ | stops at 16384 as well |
-| I30 | 158 | Handabschaltung Heizbetrieb durch BMS | | 1 = on. **Never write 0: it switches heating off** |
+| I30 | 158 | Handabschaltung Heizbetrieb durch BMS | ✅ writable | 1 = on, 0 = heating off (display: "Man. Betrieb aus") |
 | I31 | 159 | Handabschaltung Kühlbetrieb durch BMS | ✅ writable | 1 = on, 0 = off (display: "Man. Betrieb aus") |
 | I32 | 160 | Handabschaltung Warmwasser durch BMS | ✅ writable | 1 = on, 0 = off (display: "Man. Betrieb aus") |
 | I33 | 161 | Handabschaltung Pool durch BMS | | never write |
-| I30–I42 | 158–170 | flags | | always 1 on the reference unit (except HR 164 = 0); the package uses them to detect pcod's all-zero dropouts |
+| I30–I42 | 158–170 | flags | | always 1 on the reference unit (except HR 164 = 0 and I30–I32 when switched off); the package uses them to detect pcod's all-zero dropouts |
 | I51 | 179 | Schaltzustand | ✅ | bits below |
 | I52 | 180 | Ausfälle F-Codes | ✅ | bits below |
 | I53 | 181 | Unterbrechungen I-Codes | ✅ | bits below |

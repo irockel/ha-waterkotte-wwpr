@@ -744,6 +744,68 @@ template:
         availability: "{{ is_number(states('input_number.wp_laufzeit_kuhlen_jahr')) }}"
         state: "{{ states('input_number.wp_laufzeit_kuhlen_jahr') }}"
 
+  # BMS switches I30-I32 (Steuerung tab); I31/I32 are read back by sensors in the package
+  - sensor:
+      - name: "Wärmepumpe BMS Heizbetrieb"
+        unique_id: waermepumpe_bms_i30
+        icon: mdi:radiator
+        state: >
+          {% set r = states('sensor.wp_statusblock').split(',') | map('int', -1) | list %}
+          {{ r[0] if r | length == 24 and (r[0:13] | select('eq', 1) | list | length) >= 8
+             else (this.state if is_number(this.state) else none) }}
+  - switch:
+      - name: "Wärmepumpe Heizbetrieb"
+        unique_id: waermepumpe_schalter_heizbetrieb
+        icon: mdi:radiator
+        availability: "{{ is_number(states('sensor.warmepumpe_bms_heizbetrieb')) }}"
+        state: "{{ is_state('sensor.warmepumpe_bms_heizbetrieb', '1') }}"
+        turn_on:
+          - action: script.turn_on
+            target:
+              entity_id: script.wp_betrieb_schalten
+            data:
+              variables: {address: 158, value: 1}
+        turn_off:
+          - action: script.turn_on
+            target:
+              entity_id: script.wp_betrieb_schalten
+            data:
+              variables: {address: 158, value: 0}
+      - name: "Wärmepumpe Kühlbetrieb"
+        unique_id: waermepumpe_schalter_kuhlbetrieb
+        icon: mdi:snowflake
+        availability: "{{ is_number(states('sensor.warmepumpe_bms_kuhlbetrieb')) }}"
+        state: "{{ is_state('sensor.warmepumpe_bms_kuhlbetrieb', '1') }}"
+        turn_on:
+          - action: script.turn_on
+            target:
+              entity_id: script.wp_betrieb_schalten
+            data:
+              variables: {address: 159, value: 1}
+        turn_off:
+          - action: script.turn_on
+            target:
+              entity_id: script.wp_betrieb_schalten
+            data:
+              variables: {address: 159, value: 0}
+      - name: "Wärmepumpe Warmwasserbereitung"
+        unique_id: waermepumpe_schalter_warmwasserbereitung
+        icon: mdi:water-boiler
+        availability: "{{ is_number(states('sensor.warmepumpe_bms_warmwasser')) }}"
+        state: "{{ is_state('sensor.warmepumpe_bms_warmwasser', '1') }}"
+        turn_on:
+          - action: script.turn_on
+            target:
+              entity_id: script.wp_betrieb_schalten
+            data:
+              variables: {address: 160, value: 1}
+        turn_off:
+          - action: script.turn_on
+            target:
+              entity_id: script.wp_betrieb_schalten
+            data:
+              variables: {address: 160, value: 0}
+
 # helpers: settings mirrored from the heat pump, holiday function, write status, operating hours
 input_number:
   wp_warmwasser_soll_vorgabe:
@@ -1026,7 +1088,7 @@ script:
       label:
         description: Bezeichnung
       scale:
-        description: Rohwert = Wert × scale (Standard 10; 1 für die BMS-Schalter I31/I32)
+        description: Rohwert = Wert × scale (Standard 10; 1 für die BMS-Schalter I30–I32)
     sequence:
     - variables:
         raw: '{{ (value | float * (scale | default(10)) | float) | round(0) | int }}'
@@ -1071,6 +1133,55 @@ script:
         data:
           title: Wärmepumpe
           message: '{{ label }} konnte nach 2 Versuchen nicht auf {{ value }} gesetzt werden (Wärmepumpe/Karte nicht erreichbar?).'
+  wp_betrieb_schalten:
+    alias: 'WP: Betrieb schalten'
+    description: 'Schaltet Heizbetrieb (I30), Kühlbetrieb (I31) oder Warmwasserbereitung (I32) per BMS an (1) oder aus (0).
+      Gesperrt, solange der Urlaub aktiv ist: die Urlaubsfunktion stellt I31/I32 am Ende selbst wieder her.'
+    mode: queued
+    icon: mdi:power
+    fields:
+      address:
+        description: 158 = I30 Heizbetrieb, 159 = I31 Kühlbetrieb, 160 = I32 Warmwasserbereitung
+      value:
+        description: 1 = an, 0 = aus
+    sequence:
+    - variables:
+        k:
+          '158':
+            sensor: sensor.warmepumpe_bms_heizbetrieb
+            label: Heizbetrieb
+          '159':
+            sensor: sensor.warmepumpe_bms_kuhlbetrieb
+            label: Kühlbetrieb
+          '160':
+            sensor: sensor.warmepumpe_bms_warmwasser
+            label: Warmwasserbereitung
+    - condition: template
+      value_template: '{{ (address | int(0) | string) in k and value | int(-1) in [0, 1] }}'
+    - if:
+      - condition: or
+        conditions:
+        - condition: state
+          entity_id: input_boolean.wp_urlaub_geplant
+          state: 'on'
+        - condition: state
+          entity_id: input_boolean.wp_urlaub_aktiv
+          state: 'on'
+      then:
+      - action: input_text.set_value
+        target:
+          entity_id: input_text.wp_schreibstatus
+        data:
+          value: '🔒 {{ k[address | int | string].label }} nicht geschaltet: Urlaub aktiv ({{ now().strftime(''%d.%m. %H:%M'')
+            }})'
+      - stop: Urlaub aktiv
+    - action: script.wp_register_schreiben
+      data:
+        address: '{{ address | int }}'
+        value: '{{ value | int }}'
+        scale: 1
+        sensor: '{{ k[address | int | string].sensor }}'
+        label: '{{ k[address | int | string].label }}'
   wp_kennlinie_verschieben:
     alias: 'WP: Kennlinie verschieben'
     description: Verschiebt Heizkreis Norm (A92) und Heizgrenze Soll (A94) gemeinsam (Parallelverschiebung).

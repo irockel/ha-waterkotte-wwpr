@@ -19,8 +19,9 @@ Entity names and the dashboard are German, like the controller's display.
 - **Messages:** active F codes (Störungen) and I codes (Information) as text, plus three checks of its own the
   controller does not do: hot water too cold, heating circuit too cold, EVU lock not ending. You get a
   notification when a fault (Störung) appears and when it is resolved.
-- **Settings from Home Assistant:** hot water setpoint, heating curve (with a graph like the display's), heating
-  limit, cooling limit and setpoint, hystereses. Every write is checked against the value read back, and changes
+- **Settings from Home Assistant:** a switch each for hot water, heating and cooling (e.g. to stop a function in
+  an emergency), hot water setpoint, heating curve (with a graph like the display's), heating limit, cooling limit
+  and setpoint, hystereses. Every write is checked against the value read back, and changes
   made on the display show up in Home Assistant.
 - **Holiday function** like the controller's: lower the heating circuit and block cooling / hot water for a
   planned period, then restore everything. The controller's own holiday function is not reachable via Modbus.
@@ -92,8 +93,9 @@ notification on failure). The settings on the Steuerung tab are `input_number` h
 after the last adjustment if it differs from the heat pump's value. Values changed on the display are copied
 into the helpers without writing.
 
-Registers written: A38 (hot water setpoint), A61, A92–A94 (heating), A107–A109 (cooling), I31/I32 (BMS switches
-for cooling / hot water, holiday function only). **I30 (heating) is never written** – 0 would switch heating off.
+Registers written: A38 (hot water setpoint), A61, A92–A94 (heating), A107–A109 (cooling), I30/I31/I32 (BMS
+switches for heating / cooling / hot water: the switches on the Steuerung tab and the holiday function). 0 switches
+the function off. I33 (pool) is never written.
 
 ## Notes
 

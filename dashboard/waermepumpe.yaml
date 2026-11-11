@@ -252,6 +252,65 @@ views:
       icon: mdi:water-boiler
       heading_style: title
     - type: tile
+      entity: switch.warmepumpe_warmwasserbereitung
+      name: Warmwasserbereitung
+      grid_options:
+        columns: 12
+      color: blue
+      state_content:
+      - state
+      - last_changed
+      icon: mdi:water-boiler
+      visibility:
+      - condition: state
+        entity: input_boolean.wp_urlaub_geplant
+        state_not: 'on'
+      - condition: state
+        entity: input_boolean.wp_urlaub_aktiv
+        state_not: 'on'
+      features:
+      - type: toggle
+      features_position: inline
+      icon_tap_action:
+        action: more-info
+    - type: tile
+      entity: switch.warmepumpe_warmwasserbereitung
+      name: Warmwasserbereitung
+      grid_options:
+        columns: 12
+      color: blue
+      state_content:
+      - state
+      - last_changed
+      icon: mdi:water-boiler
+      visibility:
+      - condition: or
+        conditions:
+        - condition: state
+          entity: input_boolean.wp_urlaub_geplant
+          state: 'on'
+        - condition: state
+          entity: input_boolean.wp_urlaub_aktiv
+          state: 'on'
+      tap_action:
+        action: none
+      icon_tap_action:
+        action: none
+    - type: markdown
+      text_only: true
+      content: 🏖️ Urlaub aktiv
+      grid_options:
+        columns: 12
+      visibility:
+      - condition: or
+        conditions:
+        - condition: state
+          entity: input_boolean.wp_urlaub_geplant
+          state: 'on'
+        - condition: state
+          entity: input_boolean.wp_urlaub_aktiv
+          state: 'on'
+    - type: tile
       entity: input_number.wp_warmwasser_soll_vorgabe
       name: Sollwert
       grid_options:
@@ -268,6 +327,65 @@ views:
       heading: Heizung
       icon: mdi:radiator
       heading_style: title
+    - type: tile
+      entity: switch.warmepumpe_heizbetrieb
+      name: Heizbetrieb
+      grid_options:
+        columns: 12
+      color: red
+      state_content:
+      - state
+      - last_changed
+      icon: mdi:radiator
+      visibility:
+      - condition: state
+        entity: input_boolean.wp_urlaub_geplant
+        state_not: 'on'
+      - condition: state
+        entity: input_boolean.wp_urlaub_aktiv
+        state_not: 'on'
+      features:
+      - type: toggle
+      features_position: inline
+      icon_tap_action:
+        action: more-info
+    - type: tile
+      entity: switch.warmepumpe_heizbetrieb
+      name: Heizbetrieb
+      grid_options:
+        columns: 12
+      color: red
+      state_content:
+      - state
+      - last_changed
+      icon: mdi:radiator
+      visibility:
+      - condition: or
+        conditions:
+        - condition: state
+          entity: input_boolean.wp_urlaub_geplant
+          state: 'on'
+        - condition: state
+          entity: input_boolean.wp_urlaub_aktiv
+          state: 'on'
+      tap_action:
+        action: none
+      icon_tap_action:
+        action: none
+    - type: markdown
+      text_only: true
+      content: 🏖️ Urlaub aktiv
+      grid_options:
+        columns: 12
+      visibility:
+      - condition: or
+        conditions:
+        - condition: state
+          entity: input_boolean.wp_urlaub_geplant
+          state: 'on'
+        - condition: state
+          entity: input_boolean.wp_urlaub_aktiv
+          state: 'on'
     - type: tile
       entity: input_number.wp_heizgrenze_vorgabe
       name: Heizgrenze außen
@@ -367,6 +485,65 @@ views:
       icon: mdi:snowflake
       heading_style: title
     - type: tile
+      entity: switch.warmepumpe_kuhlbetrieb
+      name: Kühlbetrieb
+      grid_options:
+        columns: 12
+      color: light-blue
+      state_content:
+      - state
+      - last_changed
+      icon: mdi:snowflake
+      visibility:
+      - condition: state
+        entity: input_boolean.wp_urlaub_geplant
+        state_not: 'on'
+      - condition: state
+        entity: input_boolean.wp_urlaub_aktiv
+        state_not: 'on'
+      features:
+      - type: toggle
+      features_position: inline
+      icon_tap_action:
+        action: more-info
+    - type: tile
+      entity: switch.warmepumpe_kuhlbetrieb
+      name: Kühlbetrieb
+      grid_options:
+        columns: 12
+      color: light-blue
+      state_content:
+      - state
+      - last_changed
+      icon: mdi:snowflake
+      visibility:
+      - condition: or
+        conditions:
+        - condition: state
+          entity: input_boolean.wp_urlaub_geplant
+          state: 'on'
+        - condition: state
+          entity: input_boolean.wp_urlaub_aktiv
+          state: 'on'
+      tap_action:
+        action: none
+      icon_tap_action:
+        action: none
+    - type: markdown
+      text_only: true
+      content: 🏖️ Urlaub aktiv
+      grid_options:
+        columns: 12
+      visibility:
+      - condition: or
+        conditions:
+        - condition: state
+          entity: input_boolean.wp_urlaub_geplant
+          state: 'on'
+        - condition: state
+          entity: input_boolean.wp_urlaub_aktiv
+          state: 'on'
+    - type: tile
       entity: input_number.wp_kuhlkreis_soll_vorgabe
       name: Kühlkreis Soll
       grid_options:
@@ -453,7 +630,7 @@ views:
         ## 🗓️ Urlaub geplant
         {{ d(b) }} – {{ d(e) }} · Heizkreis {{ a }} K · Kühlbetrieb {{ 'blockieren' if is_state('input_boolean.wp_urlaub_kuhlbetrieb_blockieren', 'on') else 'erlauben' }} · Warmwasser {{ 'blockieren' if is_state('input_boolean.wp_urlaub_warmwasser_blockieren', 'on') else 'erlauben' }}
         {%- else -%}
-        Kein Urlaub geplant. Zeitraum und Werte einstellen, dann „Urlaub planen" einschalten.
+        Kein Urlaub geplant. Zeitraum und Werte einstellen, dann „Urlaub aktiv" einschalten.
         {%- endif %}
 
         <small>Nicht zusammen mit der Urlaubsfunktion am Display verwenden, sonst wirkt die Absenkung doppelt.</small>
@@ -499,7 +676,7 @@ views:
       features_position: inline
     - type: tile
       entity: input_boolean.wp_urlaub_geplant
-      name: Urlaub planen
+      name: Urlaub aktiv
       grid_options:
         columns: 12
       color: green
