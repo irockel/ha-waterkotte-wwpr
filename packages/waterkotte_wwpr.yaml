@@ -1410,7 +1410,8 @@ script:
 automation:
 - id: wp_ww_soll_schreiben
   alias: 'WP: Warmwasser-Vorgabe schreiben'
-  description: Schreibt die Warmwasser-Vorgabe 10 s nach der letzten Änderung, wenn sie vom Wert der Pumpe abweicht.
+  description: Schreibt die Warmwasser-Vorgabe 10 s nach der letzten Änderung, wenn sie vom Wert der Pumpe abweicht. Nur Änderungen
+    durch eine Person, nie das Nachziehen vom Display.
   mode: restart
   triggers:
   - trigger: state
@@ -1424,6 +1425,8 @@ automation:
     - unknown
     - unavailable
   conditions:
+  - condition: template
+    value_template: '{{ trigger.to_state.context.user_id is not none }}'
   - condition: template
     value_template: '{{ is_number(states(''sensor.warmepumpe_warmwasser_sollwert'')) and (states(''input_number.wp_warmwasser_soll_vorgabe'')
       | float - states(''sensor.warmepumpe_warmwasser_sollwert'') | float) | abs >= 0.25 }}'
@@ -1462,7 +1465,7 @@ automation:
 - id: wp_einstellung_schreiben
   alias: 'WP: Einstellungen schreiben'
   description: Schreibt eine geänderte Heiz- oder Kühl-Einstellung 10 s nach der letzten Änderung, wenn sie vom Wert der Pumpe
-    abweicht.
+    abweicht. Nur Änderungen durch eine Person, nie das Nachziehen vom Display.
   mode: queued
   triggers:
   - trigger: state
@@ -1576,6 +1579,8 @@ automation:
   - condition: state
     entity_id: input_boolean.wp_urlaub_aktiv
     state: 'off'
+  - condition: template
+    value_template: '{{ trigger.to_state.context.user_id is not none }}'
   - condition: template
     value_template: '{% set c = k[trigger.id] %}{{ is_number(states(c.sensor)) and (states(c.input) | float - states(c.sensor)
       | float) | abs >= 0.05 }}'

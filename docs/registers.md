@@ -60,7 +60,7 @@ the hot water hysteresis (Schaltdifferenz Warmwasser), the display's heating cur
 |---|---|---|---|---|
 | I5–I9 | 133–137 | Tag / Monat / Jahr / Stunde / Minute | ✅ | controller clock |
 | I10 | 138 | Betriebsstunden Verdichter 1 | ✅ | **stops at 16384 (2^14)** – also on the display and in the yearly statistics |
-| I18 | 146 | Betriebsstunden Heizungsumwälzpumpe | ✅ | stops at 16384 as well |
+| I18 | 146 | Betriebsstunden Heizungsumwälzpumpe | ✅ | stops at 16384 as well. A service technician can reset both (reference unit, 2026-11-12: I10/I18 = 1 h afterwards, while the display showed ~50 000 h) |
 | I30 | 158 | Handabschaltung Heizbetrieb durch BMS | ✅ writable | 1 = on, 0 = heating off (display: "Man. Betrieb aus") |
 | I31 | 159 | Handabschaltung Kühlbetrieb durch BMS | ✅ writable | 1 = on, 0 = off (display: "Man. Betrieb aus") |
 | I32 | 160 | Handabschaltung Warmwasser durch BMS | ✅ writable | 1 = on, 0 = off (display: "Man. Betrieb aus") |

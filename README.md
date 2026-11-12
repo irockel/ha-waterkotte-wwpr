@@ -89,9 +89,10 @@ recorder:
 
 All writes go through `script.wp_register_schreiben`: write the register, wait up to 30 s for the read-back,
 write once more if it did not arrive, then report success or failure (`input_text.wp_schreibstatus`, plus a
-notification on failure). The settings on the Steuerung tab are `input_number` helpers. A change is written 10 s
-after the last adjustment if it differs from the heat pump's value. Values changed on the display are copied
-into the helpers without writing.
+notification on failure). The settings on the Steuerung tab are `input_number` helpers. A change made on the dashboard is
+written 10 s after the last adjustment if it differs from the heat pump's value. Values changed on the display
+are copied into the helpers without writing, and such a copy is never written back, even if the display is
+changed again right after it (only changes made by a person, i.e. with a user in the context, are written).
 
 Registers written: A38 (hot water setpoint), A61, A92–A94 (heating), A107–A109 (cooling), I30/I31/I32 (BMS
 switches for heating / cooling / hot water: the switches on the Steuerung tab and the holiday function). 0 switches
