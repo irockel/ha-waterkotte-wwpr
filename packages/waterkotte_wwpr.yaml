@@ -706,6 +706,23 @@ template:
              and is_state('binary_sensor.warmepumpe_warmwasserbetrieb', 'off')
              and is_number(states('sensor.warmepumpe_vorlauf')) and is_number(states('sensor.warmepumpe_rucklauf'))
              and states('sensor.warmepumpe_vorlauf') | float < states('sensor.warmepumpe_rucklauf') | float - 1.0 }}
+  # operating state as on/off lanes for the "Betrieb" history card
+  - binary_sensor:
+      - name: "Wärmepumpe Heizen"
+        unique_id: waermepumpe_heizen
+        device_class: running
+        icon: mdi:radiator
+        state: "{{ is_state('sensor.warmepumpe_betriebszustand', 'Heizen') }}"
+      - name: "Wärmepumpe Warmwasser"
+        unique_id: waermepumpe_warmwasser
+        device_class: running
+        icon: mdi:water-boiler
+        state: "{{ is_state('sensor.warmepumpe_betriebszustand', 'Warmwasser') }}"
+      - name: "Wärmepumpe Kühlen"
+        unique_id: waermepumpe_kuehlen
+        device_class: running
+        icon: mdi:snowflake
+        state: "{{ is_state('sensor.warmepumpe_betriebszustand', 'Kühlen') }}"
   # yearly runtime for the long-term statistics (one bar per year)
   - sensor:
       - name: "Wärmepumpe Laufzeit Außengerät"

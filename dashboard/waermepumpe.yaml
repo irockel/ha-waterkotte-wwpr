@@ -733,20 +733,14 @@ views:
       grid_options:
         columns: 12
       entities:
-      - entity: binary_sensor.warmepumpe_verdichter
-        name: Verdichter
-      - entity: binary_sensor.warmepumpe_warmwasserbetrieb
+      - entity: binary_sensor.warmepumpe_warmwasser
         name: Warmwasser
-      - entity: binary_sensor.warmepumpe_heizungspumpe
-        name: Pumpe
-      - entity: binary_sensor.warmepumpe_zyklische_messung
-        name: Messung
-      - entity: binary_sensor.warmepumpe_abtauung_erkannt
-        name: Abtauung
+      - entity: binary_sensor.warmepumpe_heizen
+        name: Heizen
+      - entity: binary_sensor.warmepumpe_kuhlen
+        name: Kühlung
       - entity: binary_sensor.warmepumpe_evu_sperre
         name: EVU-Sperre
-      - entity: binary_sensor.warmepumpe_storung
-        name: Störung
     - type: history-graph
       title: Heizkreis & Außen
       hours_to_show: 24
