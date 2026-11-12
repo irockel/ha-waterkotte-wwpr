@@ -284,82 +284,6 @@ views:
   - type: grid
     cards:
     - type: heading
-      heading: Warmwasser
-      icon: mdi:water-boiler
-      heading_style: title
-    - type: tile
-      entity: switch.warmepumpe_warmwasserbereitung
-      name: Warmwasserbereitung
-      grid_options:
-        columns: 12
-      color: blue
-      state_content:
-      - state
-      - last_changed
-      icon: mdi:water-boiler
-      visibility:
-      - condition: state
-        entity: input_boolean.wp_urlaub_geplant
-        state_not: 'on'
-      - condition: state
-        entity: input_boolean.wp_urlaub_aktiv
-        state_not: 'on'
-      features:
-      - type: toggle
-      features_position: inline
-      icon_tap_action:
-        action: more-info
-    - type: tile
-      entity: switch.warmepumpe_warmwasserbereitung
-      name: Warmwasserbereitung
-      grid_options:
-        columns: 12
-      color: blue
-      state_content:
-      - state
-      - last_changed
-      icon: mdi:water-boiler
-      visibility:
-      - condition: or
-        conditions:
-        - condition: state
-          entity: input_boolean.wp_urlaub_geplant
-          state: 'on'
-        - condition: state
-          entity: input_boolean.wp_urlaub_aktiv
-          state: 'on'
-      tap_action:
-        action: none
-      icon_tap_action:
-        action: none
-    - type: markdown
-      text_only: true
-      content: 🏖️ Urlaub aktiv
-      grid_options:
-        columns: 12
-      visibility:
-      - condition: or
-        conditions:
-        - condition: state
-          entity: input_boolean.wp_urlaub_geplant
-          state: 'on'
-        - condition: state
-          entity: input_boolean.wp_urlaub_aktiv
-          state: 'on'
-    - type: tile
-      entity: input_number.wp_warmwasser_soll_vorgabe
-      name: Sollwert
-      grid_options:
-        columns: 12
-      color: blue
-      icon: mdi:water-boiler
-      features:
-      - type: numeric-input
-        style: buttons
-      features_position: inline
-  - type: grid
-    cards:
-    - type: heading
       heading: Heizung
       icon: mdi:radiator
       heading_style: title
@@ -514,6 +438,82 @@ views:
         {%- endif -%}
       grid_options:
         columns: 12
+  - type: grid
+    cards:
+    - type: heading
+      heading: Warmwasser
+      icon: mdi:water-boiler
+      heading_style: title
+    - type: tile
+      entity: switch.warmepumpe_warmwasserbereitung
+      name: Warmwasserbereitung
+      grid_options:
+        columns: 12
+      color: blue
+      state_content:
+      - state
+      - last_changed
+      icon: mdi:water-boiler
+      visibility:
+      - condition: state
+        entity: input_boolean.wp_urlaub_geplant
+        state_not: 'on'
+      - condition: state
+        entity: input_boolean.wp_urlaub_aktiv
+        state_not: 'on'
+      features:
+      - type: toggle
+      features_position: inline
+      icon_tap_action:
+        action: more-info
+    - type: tile
+      entity: switch.warmepumpe_warmwasserbereitung
+      name: Warmwasserbereitung
+      grid_options:
+        columns: 12
+      color: blue
+      state_content:
+      - state
+      - last_changed
+      icon: mdi:water-boiler
+      visibility:
+      - condition: or
+        conditions:
+        - condition: state
+          entity: input_boolean.wp_urlaub_geplant
+          state: 'on'
+        - condition: state
+          entity: input_boolean.wp_urlaub_aktiv
+          state: 'on'
+      tap_action:
+        action: none
+      icon_tap_action:
+        action: none
+    - type: markdown
+      text_only: true
+      content: 🏖️ Urlaub aktiv
+      grid_options:
+        columns: 12
+      visibility:
+      - condition: or
+        conditions:
+        - condition: state
+          entity: input_boolean.wp_urlaub_geplant
+          state: 'on'
+        - condition: state
+          entity: input_boolean.wp_urlaub_aktiv
+          state: 'on'
+    - type: tile
+      entity: input_number.wp_warmwasser_soll_vorgabe
+      name: Sollwert
+      grid_options:
+        columns: 12
+      color: blue
+      icon: mdi:water-boiler
+      features:
+      - type: numeric-input
+        style: buttons
+      features_position: inline
   - type: grid
     cards:
     - type: heading
